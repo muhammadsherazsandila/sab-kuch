@@ -7,10 +7,12 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "prisma generate && tsc",
-    "postinstall": "prisma generate && pnpm run prisma:migrate && pnpm run prisma:seed",
+    "postinstall": "prisma generate",
     "start": "node dist/index.js",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
+    "prisma:migrate": "prisma migrate deploy",
+    "prisma:deploy": "prisma migrate deploy",
+    "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio",
     "prisma:seed": "tsx src/prisma/seed.ts"
   },
