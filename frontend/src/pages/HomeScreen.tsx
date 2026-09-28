@@ -225,9 +225,6 @@ export default function HomeScreen() {
               <h2 className="font-bold text-gray-900 text-base">
                 🔥 Trending Products
               </h2>
-              <span className="text-[10px] text-gray-400 font-normal">
-                (Auto-refreshed)
-              </span>
             </div>
             <button
               className="text-primary-500 text-xs font-semibold hover:underline flex items-center gap-0.5"
