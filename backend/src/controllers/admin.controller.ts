@@ -532,10 +532,10 @@ export const AdminController = {
     });
 
     // Augment with computed stats
-    const customers = users.map((u) => {
+    const customers = users.map((u: any) => {
       const totalSpent = u.orders
-        .filter((o) => o.status !== 'CANCELLED')
-        .reduce((sum, o) => sum + o.total, 0);
+        .filter((o: any) => o.status !== 'CANCELLED')
+        .reduce((sum: number, o: any) => sum + (Number(o.total) || 0), 0);
 
       return {
         ...u,

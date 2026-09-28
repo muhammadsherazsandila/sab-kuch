@@ -44,7 +44,7 @@ export const OrderController = {
     const orderItems = [];
 
     for (const item of items) {
-      const product = products.find((p) => p.id === item.productId);
+      const product = products.find((p: any) => p.id === item.productId);
       if (!product) {
         return sendError(res, `Product with ID ${item.productId} was not found`, 400);
       }

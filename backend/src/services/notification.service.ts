@@ -74,7 +74,7 @@ export const NotificationService = {
       });
 
       await Promise.allSettled(
-        subscriptions.map(async (sub) => {
+        subscriptions.map(async (sub: any) => {
           try {
             await webpush.sendNotification(
               {
