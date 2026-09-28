@@ -9,7 +9,6 @@ import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import rateLimit from 'express-rate-limit';
 
 import { errorHandler } from './middleware/errorHandler';
 import { notFoundHandler } from './middleware/notFoundHandler';
@@ -49,18 +48,8 @@ export function createApp(): Application {
     app.use(morgan('dev'));
   }
 
-  // ─── Global Rate Limiting ───────────────────────────────────────────────────
-  // Applied to all API routes; individual sensitive routes have tighter limits.
-  app.use(
-    '/api',
-    rateLimit({
-      windowMs: 15 * 60 * 1000, // 15 minutes
-      max: 200,
-      standardHeaders: true,
-      legacyHeaders: false,
-      message: { success: false, message: 'Too many requests. Please try again later.' },
-    })
-  );
+  // ─── Global Rate Limiting (Disabled) ────────────────────────────────────────
+  // Rate limiting completely disabled for development/testing as requested.
 
   // ─── Health Check ───────────────────────────────────────────────────────────
   app.get('/health', (_req: Request, res: Response) => {

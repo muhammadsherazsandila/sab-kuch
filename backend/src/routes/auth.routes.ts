@@ -8,21 +8,13 @@
  */
 
 import { Router } from 'express';
-import rateLimit from 'express-rate-limit';
 import { AuthController } from '../controllers/auth.controller';
 import { validate } from '../middleware/validate';
 import { RequestOtpSchema, VerifyOtpSchema, GoogleAuthSchema } from '../validation/schemas';
 
 export const authRouter = Router();
 
-// Strict rate limit on OTP requests to prevent email abuse
-const otpRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5,
-  message: { success: false, message: 'Too many OTP requests. Try again in 15 minutes.' },
-});
-
-authRouter.post('/request-otp', otpRateLimit, validate(RequestOtpSchema), AuthController.requestOtp);
+authRouter.post('/request-otp', validate(RequestOtpSchema), AuthController.requestOtp);
 authRouter.post('/verify-otp', validate(VerifyOtpSchema), AuthController.verifyOtp);
 authRouter.post('/google', validate(GoogleAuthSchema), AuthController.googleAuth);
 authRouter.post('/refresh', AuthController.refreshToken);
