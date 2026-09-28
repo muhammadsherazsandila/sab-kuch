@@ -44,3 +44,9 @@ adminRouter.get('/tags', AdminController.listSearchTags);
 adminRouter.post('/tags', AdminController.createSearchTag);
 adminRouter.patch('/tags/:id', AdminController.updateSearchTag);
 adminRouter.delete('/tags/:id', AdminController.deleteSearchTag);
+
+// Banner / Updates Cards management
+adminRouter.get('/banners', AdminController.listBannerCards);
+adminRouter.post('/banners', AdminController.createBannerCard);
+adminRouter.patch('/banners/:id', AdminController.updateBannerCard);
+adminRouter.delete('/banners/:id', AdminController.deleteBannerCard);

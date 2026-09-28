@@ -155,6 +155,41 @@ async function main() {
   }
 
   console.log("✅ Sample products seeded");
+
+  // ─── Default Banner Cards ──────────────────────────────────────────────────
+  const bannerCount = await prisma.bannerCard.count();
+  if (bannerCount === 0) {
+    await prisma.bannerCard.createMany({
+      data: [
+        {
+          title: '50% OFF your first order',
+          description: 'Use code WELCOME50',
+          gradient: 'from-orange-500 to-amber-500',
+          imageUrl: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&auto=format&fit=crop&q=80',
+          sortOrder: 0,
+          isActive: true,
+        },
+        {
+          title: 'Free delivery today 🛵',
+          description: 'On all orders above Rs. 300',
+          gradient: 'from-amber-500 to-orange-500',
+          imageUrl: 'https://images.unsplash.com/photo-1526367790999-0150786686a2?w=600&auto=format&fit=crop&q=80',
+          sortOrder: 1,
+          isActive: true,
+        },
+        {
+          title: "Custom orders now live!",
+          description: "We'll buy anything for you",
+          gradient: 'from-red-500 to-orange-500',
+          imageUrl: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&auto=format&fit=crop&q=80',
+          sortOrder: 2,
+          isActive: true,
+        },
+      ],
+    });
+    console.log("✅ Promotional banner cards seeded");
+  }
+
   console.log("🎉 Seeding complete!");
 }
 

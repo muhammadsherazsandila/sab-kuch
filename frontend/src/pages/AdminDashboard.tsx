@@ -17,11 +17,12 @@ import {
   Users, Store, ShoppingBag, TrendingUp, RefreshCw, Plus, Edit2, Trash2,
   CheckCircle, XCircle, Clock, ChevronRight, Search, ArrowLeft, Eye,
   UtensilsCrossed, AlertCircle, Phone, Mail, Calendar, DollarSign,
-  Package, Shield, ExternalLink, Filter, MapPin, X, Check, Sparkles, Tag
+  Package, Shield, ExternalLink, Filter, MapPin, X, Check, Sparkles, Tag,
+  LogOut, Layers, Image as ImageIcon
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import apiClient from '@/lib/apiClient';
-import { Order, Vendor, User, OrderStatus, ApiResponse, SearchTag } from '@/types';
+import { Order, Vendor, User, OrderStatus, ApiResponse, SearchTag, BannerCard } from '@/types';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { toast } from 'sonner';
 
@@ -61,7 +62,7 @@ interface CustomerUser extends User {
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
 
   // Guard: non-admins
   useEffect(() => {
@@ -70,7 +71,7 @@ export default function AdminDashboard() {
   }, [user, navigate]);
 
   // Main navigation tab
-  const [activeTab, setActiveTab] = useState<'overview' | 'shops' | 'orders' | 'customers' | 'tags'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'shops' | 'orders' | 'customers' | 'tags' | 'banners'>('overview');
 
   // Data states
   const [stats, setStats] = useState<Stats | null>(null);
@@ -79,6 +80,18 @@ export default function AdminDashboard() {
   const [vendorTypes, setVendorTypes] = useState<VendorType[]>([]);
   const [customers, setCustomers] = useState<CustomerUser[]>([]);
   const [searchTags, setSearchTags] = useState<SearchTag[]>([]);
+  const [bannerCards, setBannerCards] = useState<BannerCard[]>([]);
+  const [showAddBannerModal, setShowAddBannerModal] = useState(false);
+  const [editingBanner, setEditingBanner] = useState<BannerCard | null>(null);
+  const [bannerForm, setBannerForm] = useState({
+    title: '',
+    description: '',
+    imageUrl: '',
+    linkUrl: '',
+    gradient: 'from-orange-500 to-amber-500',
+    sortOrder: 0,
+    isActive: true,
+  });
   const [newTagName, setNewTagName] = useState('');
   const [tagSearch, setTagSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -176,13 +189,14 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [s, o, v, vt, c, t] = await Promise.allSettled([
+      const [s, o, v, vt, c, t, b] = await Promise.allSettled([
         apiClient.get<ApiResponse<Stats>>('/admin/stats'),
         apiClient.get<ApiResponse<Order[]>>('/admin/orders'),
         apiClient.get<ApiResponse<Vendor[]>>('/admin/vendors'),
         apiClient.get<ApiResponse<VendorType[]>>('/admin/vendor-types'),
         apiClient.get<ApiResponse<CustomerUser[]>>('/admin/customers'),
         apiClient.get<ApiResponse<SearchTag[]>>('/admin/tags'),
+        apiClient.get<ApiResponse<BannerCard[]>>('/admin/banners'),
       ]);
 
       if (s.status === 'fulfilled') setStats(s.value.data.data);
@@ -197,6 +211,7 @@ export default function AdminDashboard() {
       }
       if (c.status === 'fulfilled') setCustomers(c.value.data.data);
       if (t.status === 'fulfilled') setSearchTags(t.value.data.data || []);
+      if (b.status === 'fulfilled') setBannerCards(b.value.data.data || []);
     } catch (err) {
 
       console.error('Failed to load admin data:', err);
@@ -526,6 +541,106 @@ export default function AdminDashboard() {
     });
   };
 
+  // ── Banner / Promotional Cards Management ──────────────────────────────────
+  const handleOpenAddBanner = () => {
+    setEditingBanner(null);
+    setBannerForm({
+      title: '',
+      description: '',
+      imageUrl: '',
+      linkUrl: '',
+      gradient: 'from-orange-500 to-amber-500',
+      sortOrder: bannerCards.length,
+      isActive: true,
+    });
+    setShowAddBannerModal(true);
+  };
+
+  const handleOpenEditBanner = (banner: BannerCard) => {
+    setEditingBanner(banner);
+    setBannerForm({
+      title: banner.title,
+      description: banner.description || '',
+      imageUrl: banner.imageUrl || '',
+      linkUrl: banner.linkUrl || '',
+      gradient: banner.gradient || 'from-orange-500 to-amber-500',
+      sortOrder: banner.sortOrder,
+      isActive: banner.isActive,
+    });
+    setShowAddBannerModal(true);
+  };
+
+  const handleSaveBanner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bannerForm.title.trim()) {
+      showNotification('Banner title is required', 'error');
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      if (editingBanner) {
+        const res = await apiClient.patch(`/admin/banners/${editingBanner.id}`, bannerForm);
+        setBannerCards((prev) => prev.map((item) => (item.id === editingBanner.id ? res.data.data : item)));
+        showNotification('Banner card updated successfully');
+      } else {
+        const res = await apiClient.post('/admin/banners', bannerForm);
+        setBannerCards((prev) => [...prev, res.data.data]);
+        showNotification('Banner card created successfully');
+      }
+      setShowAddBannerModal(false);
+      setEditingBanner(null);
+    } catch (err: any) {
+      showNotification(err?.response?.data?.message || 'Failed to save banner', 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleToggleBannerStatus = async (banner: BannerCard) => {
+    try {
+      const res = await apiClient.patch(`/admin/banners/${banner.id}`, { isActive: !banner.isActive });
+      setBannerCards((prev) => prev.map((b) => (b.id === banner.id ? res.data.data : b)));
+      showNotification(`Banner ${!banner.isActive ? 'activated' : 'hidden'}`);
+    } catch (err: any) {
+      showNotification('Failed to update banner status', 'error');
+    }
+  };
+
+  const handleDeleteBanner = (bannerId: string, bannerTitle: string) => {
+    requestConfirm({
+      title: `Delete Banner "${bannerTitle}"?`,
+      description: 'Are you sure you want to delete this promotional card? It will be removed from customer home screens.',
+      confirmText: 'Delete Card',
+      variant: 'danger',
+      onConfirm: async () => {
+        try {
+          await apiClient.delete(`/admin/banners/${bannerId}`);
+          setBannerCards((prev) => prev.filter((b) => b.id !== bannerId));
+          showNotification('Banner deleted successfully');
+        } catch (err: any) {
+          showNotification('Failed to delete banner', 'error');
+        } finally {
+          setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+        }
+      },
+    });
+  };
+
+  const handleLogout = () => {
+    requestConfirm({
+      title: 'Log Out of Admin Portal?',
+      description: 'Are you sure you want to log out from the admin portal? You can sign back in anytime.',
+      confirmText: 'Log Out',
+      variant: 'danger',
+      onConfirm: () => {
+        logout();
+        toast.success('Logged out from admin portal');
+        navigate('/auth', { replace: true });
+      },
+    });
+  };
+
 
   // ── Filtered items ────────────────────────────────────────────────────────
 
@@ -667,6 +782,23 @@ export default function AdminDashboard() {
               {searchTags.length}
             </span>
           </button>
+
+          <button
+            onClick={() => { setActiveTab('banners'); setManagingShop(null); }}
+            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors ${
+              activeTab === 'banners'
+                ? 'bg-orange-600 text-white shadow-md shadow-orange-600/20'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <Layers size={17} />
+              <span>Updates & Banners</span>
+            </div>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
+              {bannerCards.length}
+            </span>
+          </button>
         </nav>
 
         {/* Bottom user & switch to customer app */}
@@ -682,14 +814,24 @@ export default function AdminDashboard() {
             <span className="text-[10px] text-orange-400 font-semibold">Live</span>
           </Link>
 
-          <div className="flex items-center gap-2.5 pt-1.5">
-            <div className="w-8 h-8 rounded-full bg-orange-600 flex items-center justify-center font-bold text-white text-xs">
-              {user?.name?.charAt(0) || 'A'}
+          <div className="flex items-center justify-between pt-1.5">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-full bg-orange-600 flex items-center justify-center font-bold text-white text-xs flex-shrink-0">
+                {user?.name?.charAt(0) || 'A'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-white truncate">{user?.name || 'Administrator'}</p>
+                <p className="text-[10px] text-slate-400 truncate">{user?.email}</p>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-white truncate">{user?.name || 'Administrator'}</p>
-              <p className="text-[10px] text-slate-400 truncate">{user?.email}</p>
-            </div>
+            <button
+              onClick={handleLogout}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-slate-800 transition-colors cursor-pointer"
+              title="Log out of Admin Portal"
+              aria-label="Log Out"
+            >
+              <LogOut size={16} />
+            </button>
           </div>
         </div>
       </aside>
@@ -703,7 +845,10 @@ export default function AdminDashboard() {
               <span>Admin Portal</span>
               <span>/</span>
               <span className="text-orange-400 font-medium capitalize">
-                {managingShop ? `Shops / ${managingShop.name} / Menu` : activeTab === 'tags' ? 'Search Tags' : activeTab}
+                {managingShop ? `Shops / ${managingShop.name} / Menu` :
+                 activeTab === 'tags' ? 'Search Tags' :
+                 activeTab === 'banners' ? 'App Updates & Banners' :
+                 activeTab}
               </span>
             </div>
             <h2 className="text-lg font-bold text-white mt-0.5">
@@ -712,10 +857,10 @@ export default function AdminDashboard() {
                activeTab === 'shops' ? 'Shop & Menu Management' :
                activeTab === 'orders' ? 'Orders Fulfillment' :
                activeTab === 'customers' ? 'Customer Directory & History' :
-               'Search Tags & Quick Filters'}
+               activeTab === 'tags' ? 'Search Tags & Quick Filters' :
+               'App Updates & Promotional Banners'}
             </h2>
           </div>
-
 
           {/* Quick Actions */}
           <div className="flex items-center gap-2.5">
@@ -743,6 +888,15 @@ export default function AdminDashboard() {
                 className="flex items-center gap-1.5 bg-orange-600 hover:bg-orange-500 text-white px-3.5 py-1.5 rounded-xl text-xs font-semibold shadow-md shadow-orange-600/20 transition-all"
               >
                 <Plus size={15} /> Add New Shop
+              </button>
+            )}
+
+            {activeTab === 'banners' && (
+              <button
+                onClick={handleOpenAddBanner}
+                className="flex items-center gap-1.5 bg-orange-600 hover:bg-orange-500 text-white px-3.5 py-1.5 rounded-xl text-xs font-semibold shadow-md shadow-orange-600/20 transition-all cursor-pointer"
+              >
+                <Plus size={15} /> Create Banner
               </button>
             )}
 
@@ -784,6 +938,15 @@ export default function AdminDashboard() {
               title="Refresh Data"
             >
               <RefreshCw size={15} className={loading ? 'animate-spin text-orange-400' : ''} />
+            </button>
+
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-all font-semibold text-xs cursor-pointer"
+              title="Log Out of Admin Portal"
+            >
+              <LogOut size={14} />
+              <span>Log Out</span>
             </button>
           </div>
         </header>
@@ -1720,6 +1883,137 @@ export default function AdminDashboard() {
               </div>
             </div>
           )}
+
+          {/* ── TAB: APP UPDATES & BANNER CARDS MANAGEMENT ───────────────────── */}
+          {activeTab === 'banners' && (
+            <div className="space-y-6">
+              {/* Header Card */}
+              <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-orange-500/10 text-orange-400 flex items-center justify-center">
+                        <Layers size={18} />
+                      </div>
+                      <h3 className="text-base font-bold text-white">App Updates & Promotional Banners</h3>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1 max-w-2xl">
+                      Manage the horizontal carousel cards that appear at the top of the Customer App home screen.
+                      Each card can have a title, promotional description, background image with gradient fallback, and optional navigation link.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleOpenAddBanner}
+                    className="flex items-center justify-center gap-1.5 bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow-lg shadow-orange-600/25 transition-all self-start md:self-auto cursor-pointer"
+                  >
+                    <Plus size={16} /> Create Banner Card
+                  </button>
+                </div>
+              </div>
+
+              {/* Banners Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {bannerCards.map((banner) => (
+                  <div
+                    key={banner.id}
+                    className={`bg-slate-900 border rounded-2xl overflow-hidden transition-all flex flex-col justify-between ${
+                      banner.isActive ? 'border-slate-800 shadow-sm' : 'border-slate-800/50 opacity-60'
+                    }`}
+                  >
+                    {/* Live Preview Card */}
+                    <div className="p-3">
+                      <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center justify-between">
+                        <span>Customer App Preview</span>
+                        <span>Priority #{banner.sortOrder}</span>
+                      </p>
+                      <div
+                        className={`w-full h-32 rounded-xl relative overflow-hidden p-4 flex flex-col justify-end shadow-inner select-none ${
+                          !banner.imageUrl ? (banner.gradient ? `bg-gradient-to-r ${banner.gradient}` : 'bg-gradient-to-r from-orange-500 to-amber-500') : ''
+                        }`}
+                      >
+                        {banner.imageUrl && (
+                          <>
+                            <img
+                              src={banner.imageUrl}
+                              alt={banner.title}
+                              className="absolute inset-0 w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
+                          </>
+                        )}
+                        <div className="relative z-10">
+                          <p className="text-white font-bold text-sm leading-tight drop-shadow-xs">{banner.title}</p>
+                          {banner.description && (
+                            <p className="text-white/90 text-xs mt-1 leading-snug drop-shadow-xs line-clamp-2">
+                              {banner.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card Meta & Controls */}
+                    <div className="p-3.5 bg-slate-900/60 border-t border-slate-800 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span
+                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                            banner.isActive
+                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                              : 'bg-slate-800 text-slate-400 border border-slate-700'
+                          }`}
+                        >
+                          {banner.isActive ? 'Active' : 'Hidden'}
+                        </span>
+                        {banner.linkUrl && (
+                          <span className="text-[10px] text-slate-400 truncate max-w-[120px]" title={banner.linkUrl}>
+                            🔗 {banner.linkUrl}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => handleToggleBannerStatus(banner)}
+                          className="px-2 py-1 rounded-lg text-[11px] font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                          title={banner.isActive ? 'Hide from customer app' : 'Publish to customer app'}
+                        >
+                          {banner.isActive ? 'Hide' : 'Show'}
+                        </button>
+                        <button
+                          onClick={() => handleOpenEditBanner(banner)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                          title="Edit Banner Card"
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteBanner(banner.id, banner.title)}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                          title="Delete Banner Card"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {bannerCards.length === 0 && (
+                  <div className="col-span-full py-16 text-center bg-slate-900 border border-slate-800 rounded-2xl">
+                    <Layers size={36} className="mx-auto text-slate-600 mb-3" />
+                    <p className="text-white font-semibold text-sm">No promotional banners yet</p>
+                    <p className="text-slate-400 text-xs mt-1">Create your first banner card to show on the customer home screen.</p>
+                    <button
+                      onClick={handleOpenAddBanner}
+                      className="mt-4 bg-orange-600 hover:bg-orange-500 text-white px-4 py-2 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 shadow-md shadow-orange-600/20 cursor-pointer"
+                    >
+                      <Plus size={15} /> Add First Banner
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </main>
 
       </div>
@@ -2344,6 +2638,191 @@ export default function AdminDashboard() {
                   className="px-6 py-2.5 rounded-xl text-sm font-bold bg-orange-600 hover:bg-orange-500 text-white shadow-lg shadow-orange-600/30"
                 >
                   {actionLoading ? 'Saving...' : editingProduct ? 'Update Item' : 'Add Item'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL: ADD / EDIT BANNER CARD ───────────────────────────────────── */}
+      {showAddBannerModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden">
+            <div className="p-5 border-b border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-orange-500/10 text-orange-400 flex items-center justify-center">
+                  <Layers size={18} />
+                </div>
+                <h3 className="font-bold text-white text-base">
+                  {editingBanner ? 'Edit Banner Card' : 'Create New Banner Card'}
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowAddBannerModal(false)}
+                className="w-7 h-7 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center text-xs transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveBanner} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+              {/* Live Preview within Modal */}
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                  Live Preview
+                </label>
+                <div
+                  className={`w-full h-28 rounded-2xl relative overflow-hidden p-4 flex flex-col justify-end shadow-inner border border-slate-700 ${
+                    !bannerForm.imageUrl ? (bannerForm.gradient ? `bg-gradient-to-r ${bannerForm.gradient}` : 'bg-gradient-to-r from-orange-500 to-amber-500') : ''
+                  }`}
+                >
+                  {bannerForm.imageUrl && (
+                    <>
+                      <img
+                        src={bannerForm.imageUrl}
+                        alt="Preview"
+                        className="absolute inset-0 w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
+                    </>
+                  )}
+                  <div className="relative z-10">
+                    <p className="text-white font-bold text-sm leading-tight drop-shadow-xs">
+                      {bannerForm.title || 'Banner Title Goes Here'}
+                    </p>
+                    <p className="text-white/90 text-xs mt-1 leading-snug drop-shadow-xs">
+                      {bannerForm.description || 'Description subtitle goes here...'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Card Title <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. 50% OFF your first order"
+                  value={bannerForm.title}
+                  onChange={(e) => setBannerForm({ ...bannerForm, title: e.target.value })}
+                  className="w-full bg-slate-800 border border-slate-700 text-white placeholder-slate-500 px-3.5 py-2 rounded-xl text-xs focus:outline-none focus:border-orange-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Description / Subtitle
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Use code WELCOME50 or On all orders above Rs. 300"
+                  value={bannerForm.description}
+                  onChange={(e) => setBannerForm({ ...bannerForm, description: e.target.value })}
+                  className="w-full bg-slate-800 border border-slate-700 text-white placeholder-slate-500 px-3.5 py-2 rounded-xl text-xs focus:outline-none focus:border-orange-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Background Image URL
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://images.unsplash.com/... or hosted image URL"
+                  value={bannerForm.imageUrl}
+                  onChange={(e) => setBannerForm({ ...bannerForm, imageUrl: e.target.value })}
+                  className="w-full bg-slate-800 border border-slate-700 text-white placeholder-slate-500 px-3.5 py-2 rounded-xl text-xs focus:outline-none focus:border-orange-500"
+                />
+                <p className="text-[10px] text-slate-500 mt-1">Leave empty to use a solid gradient theme.</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Gradient Color Theme (Fallback or Image Tint)
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { label: 'Orange / Amber', val: 'from-orange-500 to-amber-500' },
+                    { label: 'Red / Orange', val: 'from-red-500 to-orange-500' },
+                    { label: 'Primary / Red', val: 'from-primary-500 to-red-500' },
+                    { label: 'Emerald / Teal', val: 'from-emerald-500 to-teal-600' },
+                    { label: 'Blue / Indigo', val: 'from-blue-500 to-indigo-600' },
+                    { label: 'Purple / Pink', val: 'from-purple-600 to-pink-500' },
+                  ].map((grad) => (
+                    <button
+                      key={grad.val}
+                      type="button"
+                      onClick={() => setBannerForm({ ...bannerForm, gradient: grad.val })}
+                      className={`h-8 rounded-lg bg-gradient-to-r ${grad.val} text-[10px] font-bold text-white shadow-xs transition-transform cursor-pointer ${
+                        bannerForm.gradient === grad.val ? 'ring-2 ring-white scale-105' : 'opacity-80 hover:opacity-100'
+                      }`}
+                    >
+                      {grad.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Link / Route (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="/shops or /custom-order"
+                    value={bannerForm.linkUrl}
+                    onChange={(e) => setBannerForm({ ...bannerForm, linkUrl: e.target.value })}
+                    className="w-full bg-slate-800 border border-slate-700 text-white placeholder-slate-500 px-3.5 py-2 rounded-xl text-xs focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Display Priority / Sort
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={bannerForm.sortOrder}
+                    onChange={(e) => setBannerForm({ ...bannerForm, sortOrder: Number(e.target.value) })}
+                    className="w-full bg-slate-800 border border-slate-700 text-white placeholder-slate-500 px-3.5 py-2 rounded-xl text-xs focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="bannerIsActive"
+                  checked={bannerForm.isActive}
+                  onChange={(e) => setBannerForm({ ...bannerForm, isActive: e.target.checked })}
+                  className="w-4 h-4 rounded text-orange-600 bg-slate-800 border-slate-700 focus:ring-orange-500"
+                />
+                <label htmlFor="bannerIsActive" className="text-xs text-slate-300 font-medium cursor-pointer">
+                  Active (show this banner to customers on the app)
+                </label>
+              </div>
+
+              <div className="pt-3 border-t border-slate-800 flex justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setShowAddBannerModal(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-5 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white text-xs font-semibold shadow-lg shadow-orange-600/25 transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  {actionLoading ? 'Saving...' : editingBanner ? 'Update Banner' : 'Create Banner'}
                 </button>
               </div>
             </form>

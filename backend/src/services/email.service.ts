@@ -1,10 +1,12 @@
 /**
- * Email Service — powered by Resend
+ * Email Service — Supports EmailJS (primary) and Resend (fallback/future switch)
  *
- * Centralises all transactional email sending.
- * Add new email methods here (order confirmation, delivery notification, etc.)
+ * Configured via EMAIL_PROVIDER in .env:
+ * - EMAIL_PROVIDER="emailjs" (default) -> uses EmailJS
+ * - EMAIL_PROVIDER="resend"  -> uses Resend
  */
 
+import emailjs from "@emailjs/nodejs";
 import { Resend } from "resend";
 import { logger } from "../utils/logger";
 
@@ -14,11 +16,77 @@ const FROM = `${process.env.RESEND_FROM_NAME || "Sab Kuch"} <${process.env.RESEN
 
 export const emailService = {
   /**
-   * Send a 6-digit OTP email to the user.
-   * @param to    recipient email address
-   * @param otp   6-digit numeric code
+   * Main OTP dispatcher.
+   * Uses EmailJS by default unless EMAIL_PROVIDER="resend".
    */
   async sendOtp(to: string, otp: string): Promise<void> {
+    const provider = (process.env.EMAIL_PROVIDER || "emailjs").toLowerCase();
+
+    if (provider === "resend") {
+      return this.sendOtpViaResend(to, otp);
+    }
+
+    return this.sendOtpViaEmailJS(to, otp);
+  },
+
+  /**
+   * Send OTP email via EmailJS (@emailjs/nodejs)
+   */
+  async sendOtpViaEmailJS(to: string, otp: string): Promise<void> {
+    const serviceId = process.env.EMAILJS_SERVICE_ID;
+    const templateId = process.env.EMAILJS_TEMPLATE_ID;
+    const publicKey = process.env.EMAILJS_PUBLIC_KEY || process.env.EMAILJS_USER_ID;
+    const privateKey = process.env.EMAILJS_PRIVATE_KEY;
+
+    if (!serviceId || !templateId || !publicKey) {
+      const msg = "EmailJS credentials missing (EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, EMAILJS_PUBLIC_KEY)";
+      logger.warn(`[EmailJS] ${msg}. In development, OTP is: ${otp} for ${to}`);
+      if (process.env.NODE_ENV === "development") {
+        console.log(`\n========================================\n[DEV OTP] For ${to}: ${otp}\n========================================\n`);
+        return;
+      }
+      throw new Error(msg);
+    }
+
+    try {
+      const templateParams = {
+        to_email: to,
+        email: to,
+        recipient: to,
+        to_name: to.split("@")[0] || "User",
+        otp,
+        passcode: otp,
+        code: otp,
+        expiry_minutes: process.env.OTP_EXPIRY_MINUTES || "10",
+        message: `Your Sab Kuch verification code is: ${otp}`,
+        app_name: "Sab Kuch",
+      };
+
+      await emailjs.send(
+        serviceId,
+        templateId,
+        templateParams,
+        {
+          publicKey,
+          ...(privateKey ? { privateKey } : {}),
+        }
+      );
+
+      logger.info(`[EmailJS] OTP sent successfully to ${to}`);
+    } catch (error) {
+      logger.error("[EmailJS] Failed to send OTP email:", error);
+      // In development, also show OTP in console so login flow is never blocked
+      if (process.env.NODE_ENV === "development") {
+        console.log(`\n========================================\n[DEV OTP FALLBACK] For ${to}: ${otp}\n========================================\n`);
+      }
+      throw error;
+    }
+  },
+
+  /**
+   * Send OTP email via Resend (preserved for future switch)
+   */
+  async sendOtpViaResend(to: string, otp: string): Promise<void> {
     try {
       await resend.emails.send({
         from: FROM,
@@ -40,10 +108,9 @@ export const emailService = {
           </div>
         `,
       });
-      logger.info(`OTP ${otp} sent to ${to}`);
+      logger.info(`[Resend] OTP ${otp} sent to ${to}`);
     } catch (error) {
-      // Log but re-throw so the controller can handle it
-      logger.error("Failed to send OTP email:", error);
+      logger.error("[Resend] Failed to send OTP email:", error);
       throw error;
     }
   },
@@ -59,6 +126,31 @@ export const emailService = {
     orderNumber: string,
     total: number,
   ): Promise<void> {
+    const provider = (process.env.EMAIL_PROVIDER || "emailjs").toLowerCase();
+
+    if (provider === "emailjs" && process.env.EMAILJS_SERVICE_ID && process.env.EMAILJS_TEMPLATE_ID) {
+      try {
+        await emailjs.send(
+          process.env.EMAILJS_SERVICE_ID,
+          process.env.EMAILJS_TEMPLATE_ID,
+          {
+            to_email: to,
+            email: to,
+            orderNumber,
+            total: `Rs. ${total.toFixed(0)}`,
+            message: `Order ${orderNumber} has been placed successfully. Total: Rs. ${total.toFixed(0)}`,
+          },
+          {
+            publicKey: process.env.EMAILJS_PUBLIC_KEY || process.env.EMAILJS_USER_ID,
+            ...(process.env.EMAILJS_PRIVATE_KEY ? { privateKey: process.env.EMAILJS_PRIVATE_KEY } : {}),
+          }
+        );
+        return;
+      } catch (err) {
+        logger.warn("[EmailJS] Failed to send order confirmation, trying Resend:", err);
+      }
+    }
+
     try {
       await resend.emails.send({
         from: FROM,
@@ -68,7 +160,7 @@ export const emailService = {
           <div style="font-family: 'Poppins', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px;">
             <h2 style="color: #ff4500;">Your order is confirmed! 🎉</h2>
             <p>Order <strong>${orderNumber}</strong> has been placed successfully.</p>
-            <p>Total: <strong>₹${total.toFixed(2)}</strong></p>
+            <p>Total: <strong>Rs. ${total.toFixed(2)}</strong></p>
             <p>We'll notify you as your order progresses. Track it in the app.</p>
           </div>
         `,

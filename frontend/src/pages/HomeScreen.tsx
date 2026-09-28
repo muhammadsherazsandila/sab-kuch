@@ -43,12 +43,7 @@ function formatPrice(price: number) {
   return `Rs. ${price.toFixed(0)}`;
 }
 
-// ── Promotional banners data (static until CMS is added) ──────────────────
-const BANNERS = [
-  { id: 1, title: '50% OFF your first order', subtitle: 'Use code WELCOME50', gradient: 'from-primary-500 to-orange-400' },
-  { id: 2, title: 'Free delivery today 🛵',   subtitle: 'On all orders above Rs. 300', gradient: 'from-amber-500 to-orange-500' },
-  { id: 3, title: 'Custom orders now live!',   subtitle: 'We\'ll buy anything for you', gradient: 'from-red-500 to-primary-500' },
-];
+import { useBanners } from '@/hooks/useBanners';
 
 export default function HomeScreen() {
   const navigate = useNavigate();
@@ -57,6 +52,7 @@ export default function HomeScreen() {
 
   const { products, loading: productsLoading } = useFeaturedProducts();
   const { vendors } = useVendors();
+  const { banners } = useBanners();
   const [trendingItems, setTrendingItems] = useState<Product[]>([]);
 
   // Randomize trending products on mount & reload every 1 minute
@@ -82,7 +78,7 @@ export default function HomeScreen() {
 
   const greeting = () => {
     const hour = new Date().getHours();
-    const name = user?.name?.split(' ')[0] || 'there';
+    const name = user?.name || 'there';
     if (hour < 12) return `Good morning, ${name} 👋`;
     if (hour < 17) return `Good afternoon, ${name} 👋`;
     return `Good evening, ${name} 👋`;
@@ -93,7 +89,7 @@ export default function HomeScreen() {
       {/* ── Header ────────────────────────────────────────────────────────── */}
       <div className="px-4 pt-12 pb-4 bg-white sticky top-0 z-10 border-b border-gray-100">
         <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
             <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 bg-white border border-gray-100 shadow-xs flex items-center justify-center p-0.5">
               <img
                 src="/logo.jpg"
@@ -101,8 +97,10 @@ export default function HomeScreen() {
                 className="w-full h-full object-contain aspect-square"
               />
             </div>
-            <div className="min-w-0">
-              <h1 className="text-base font-bold text-gray-900 truncate leading-tight">{greeting()}</h1>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-sm sm:text-base font-bold text-gray-900 leading-snug break-words">
+                {greeting()}
+              </h1>
               <div className="flex items-center gap-1 mt-0.5">
                 <MapPin size={11} className="text-primary-500 flex-shrink-0" />
                 <p className="text-xs text-gray-400 truncate">{user?.city?.name || 'Hostel City, Islamabad'}</p>
@@ -145,23 +143,54 @@ export default function HomeScreen() {
       </div>
 
       <div className="px-4 space-y-6 pt-4 pb-4">
-        {/* ── Promotional Banners ────────────────────────────────────────── */}
-        <section>
-          <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-1 -mx-4 px-4">
-            {BANNERS.map((banner) => (
-              <div
-                key={banner.id}
-                className={cn(
-                  'flex-shrink-0 w-72 h-28 rounded-2xl bg-gradient-to-r p-4 flex flex-col justify-end',
-                  banner.gradient
-                )}
-              >
-                <p className="text-white font-bold text-sm leading-tight">{banner.title}</p>
-                <p className="text-white/80 text-xs mt-0.5">{banner.subtitle}</p>
-              </div>
-            ))}
-          </div>
-        </section>
+        {/* ── Promotional & Update Banners (Managed via Admin) ─────────────── */}
+        {banners.length > 0 && (
+          <section>
+            <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-1 -mx-4 px-4">
+              {banners.map((banner) => (
+                <div
+                  key={banner.id}
+                  onClick={() => {
+                    if (banner.linkUrl) {
+                      if (banner.linkUrl.startsWith('http')) {
+                        window.open(banner.linkUrl, '_blank');
+                      } else {
+                        navigate(banner.linkUrl);
+                      }
+                    }
+                  }}
+                  className={cn(
+                    'flex-shrink-0 w-72 h-32 rounded-2xl relative overflow-hidden p-4 flex flex-col justify-end shadow-xs select-none transition-transform active:scale-[0.99]',
+                    banner.linkUrl && 'cursor-pointer',
+                    !banner.imageUrl && (banner.gradient ? `bg-gradient-to-r ${banner.gradient}` : 'bg-gradient-to-r from-orange-500 to-amber-500')
+                  )}
+                >
+                  {/* Background Image with Dark Gradient Overlay */}
+                  {banner.imageUrl && (
+                    <>
+                      <img
+                        src={banner.imageUrl}
+                        alt={banner.title}
+                        className="absolute inset-0 w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
+                    </>
+                  )}
+
+                  <div className="relative z-10">
+                    <p className="text-white font-bold text-sm leading-tight drop-shadow-xs">{banner.title}</p>
+                    {banner.description && (
+                      <p className="text-white/90 text-xs mt-1 leading-snug drop-shadow-xs line-clamp-2">
+                        {banner.description}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* ── Trending Products ──────────────────────────────────────────── */}
         <section>

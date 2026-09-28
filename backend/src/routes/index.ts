@@ -11,6 +11,7 @@ import { orderRouter } from './order.routes';
 import { userRouter } from './user.routes';
 import { adminRouter } from './admin.routes';
 import { searchRouter } from './search.routes';
+import { bannerRouter } from './banner.routes';
 
 export const apiRouter = Router();
 
@@ -23,4 +24,5 @@ apiRouter.use(`${V1}/orders`, orderRouter);
 apiRouter.use(`${V1}/users`, userRouter);
 apiRouter.use(`${V1}/admin`, adminRouter);
 apiRouter.use(`${V1}/search`, searchRouter);
+apiRouter.use(`${V1}/banners`, bannerRouter);
 

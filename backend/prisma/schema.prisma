@@ -442,3 +442,20 @@ model SearchTag {
   @@map("search_tags")
 }
 
+/// Promotional and updates cards managed by admin and displayed on home screen
+model BannerCard {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  imageUrl    String?
+  linkUrl     String?
+  gradient    String?  @default("from-orange-500 to-amber-500")
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("banner_cards")
+}
+
+

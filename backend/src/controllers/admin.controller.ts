@@ -684,5 +684,121 @@ export const AdminController = {
       return sendError(res, message, 400);
     }
   },
+
+  /** GET /api/v1/admin/banners — list all banner cards */
+  async listBannerCards(req: Request, res: Response) {
+    try {
+      let banners = await prisma.bannerCard.findMany({
+        orderBy: { sortOrder: 'asc' },
+      });
+
+      if (banners.length === 0) {
+        const DEFAULT_BANNERS = [
+          {
+            title: '50% OFF your first order',
+            description: 'Use code WELCOME50',
+            gradient: 'from-orange-500 to-amber-500',
+            imageUrl: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&auto=format&fit=crop&q=80',
+            sortOrder: 0,
+            isActive: true,
+          },
+          {
+            title: 'Free delivery today 🛵',
+            description: 'On all orders above Rs. 300',
+            gradient: 'from-amber-500 to-orange-500',
+            imageUrl: 'https://images.unsplash.com/photo-1526367790999-0150786686a2?w=600&auto=format&fit=crop&q=80',
+            sortOrder: 1,
+            isActive: true,
+          },
+          {
+            title: "Custom orders now live!",
+            description: "We'll buy anything for you",
+            gradient: 'from-red-500 to-orange-500',
+            imageUrl: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&auto=format&fit=crop&q=80',
+            sortOrder: 2,
+            isActive: true,
+          },
+        ];
+
+        await prisma.bannerCard.createMany({
+          data: DEFAULT_BANNERS,
+        });
+
+        banners = await prisma.bannerCard.findMany({
+          orderBy: { sortOrder: 'asc' },
+        });
+      }
+
+      return sendSuccess(res, banners);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to fetch banner cards';
+      return sendError(res, message, 500);
+    }
+  },
+
+  /** POST /api/v1/admin/banners — create banner card */
+  async createBannerCard(req: Request, res: Response) {
+    try {
+      const { title, description, imageUrl, linkUrl, gradient, sortOrder, isActive } = req.body;
+      if (!title || typeof title !== 'string' || !title.trim()) {
+        return sendError(res, 'Title is required', 400);
+      }
+
+      const banner = await prisma.bannerCard.create({
+        data: {
+          title: title.trim(),
+          description: description ? String(description).trim() : null,
+          imageUrl: imageUrl ? String(imageUrl).trim() : null,
+          linkUrl: linkUrl ? String(linkUrl).trim() : null,
+          gradient: gradient ? String(gradient).trim() : 'from-orange-500 to-amber-500',
+          sortOrder: sortOrder !== undefined ? Number(sortOrder) : 0,
+          isActive: isActive !== false,
+        },
+      });
+
+      return sendSuccess(res, banner, 'Banner card created successfully', 201);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to create banner card';
+      return sendError(res, message, 400);
+    }
+  },
+
+  /** PATCH /api/v1/admin/banners/:id — update banner card */
+  async updateBannerCard(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const { title, description, imageUrl, linkUrl, gradient, sortOrder, isActive } = req.body;
+
+      const banner = await prisma.bannerCard.update({
+        where: { id: id as string },
+        data: {
+          title: title !== undefined ? String(title).trim() : undefined,
+          description: description !== undefined ? (description ? String(description).trim() : null) : undefined,
+          imageUrl: imageUrl !== undefined ? (imageUrl ? String(imageUrl).trim() : null) : undefined,
+          linkUrl: linkUrl !== undefined ? (linkUrl ? String(linkUrl).trim() : null) : undefined,
+          gradient: gradient !== undefined ? String(gradient).trim() : undefined,
+          sortOrder: sortOrder !== undefined ? Number(sortOrder) : undefined,
+          isActive: isActive !== undefined ? Boolean(isActive) : undefined,
+        },
+      });
+
+      return sendSuccess(res, banner, 'Banner card updated successfully');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to update banner card';
+      return sendError(res, message, 400);
+    }
+  },
+
+  /** DELETE /api/v1/admin/banners/:id — delete banner card */
+  async deleteBannerCard(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      await prisma.bannerCard.delete({ where: { id: id as string } });
+      return sendSuccess(res, null, 'Banner card deleted successfully');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to delete banner card';
+      return sendError(res, message, 400);
+    }
+  },
 };
 

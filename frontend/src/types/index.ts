@@ -201,3 +201,17 @@ export interface AppNotification {
   createdAt: string;
 }
 
+export interface BannerCard {
+  id: string;
+  title: string;
+  description?: string | null;
+  imageUrl?: string | null;
+  linkUrl?: string | null;
+  gradient?: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+
