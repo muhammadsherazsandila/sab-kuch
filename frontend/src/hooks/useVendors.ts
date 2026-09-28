@@ -29,8 +29,14 @@ export function useVendors(options: UseVendorsOptions = {}) {
     setLoading(true);
     apiClient
       .get<ApiResponse<Vendor[]>>(`/vendors?${params}`)
-      .then((res) => setVendors(res.data.data))
-      .catch((err) => setError(err.message))
+      .then((res) => {
+        const data = res?.data?.data;
+        setVendors(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => {
+        setError(err.message);
+        setVendors([]);
+      })
       .finally(() => setLoading(false));
   // Re-fetch when search / filter params change
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -49,8 +55,14 @@ export function useVendor(slug: string) {
     setLoading(true);
     apiClient
       .get<ApiResponse<Vendor>>(`/vendors/${slug}`)
-      .then((res) => setVendor(res.data.data))
-      .catch((err) => setError(err.message))
+      .then((res) => {
+        const data = res?.data?.data;
+        setVendor(data && typeof data === 'object' ? data : null);
+      })
+      .catch((err) => {
+        setError(err.message);
+        setVendor(null);
+      })
       .finally(() => setLoading(false));
   }, [slug]);
 

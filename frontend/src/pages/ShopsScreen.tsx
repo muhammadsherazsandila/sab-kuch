@@ -53,12 +53,13 @@ export default function ShopsScreen() {
 
   // Fetch vendors with search + type filter
   const { vendors, loading } = useVendors({ search, type: activeType ?? undefined });
+  const safeVendors = Array.isArray(vendors) ? vendors : [];
 
   // Derive unique vendor types for filter chips
   const vendorTypes = useMemo(() => {
-    const types = new Set(vendors.map((v) => v.vendorType.name));
+    const types = new Set(safeVendors.map((v) => v.vendorType?.name).filter(Boolean));
     return ['All', ...Array.from(types)];
-  }, [vendors]);
+  }, [safeVendors]);
 
   return (
     <div className="bg-gray-50 min-h-full">
@@ -99,14 +100,14 @@ export default function ShopsScreen() {
       <div className="px-4 pt-4 space-y-4 pb-4">
         {loading ? (
           <ShopListSkeleton />
-        ) : vendors.length === 0 ? (
+        ) : safeVendors.length === 0 ? (
           <div className="text-center py-16">
             <p className="text-4xl mb-3">🔍</p>
             <p className="text-gray-500 font-medium">No shops found</p>
             <p className="text-gray-400 text-sm mt-1">Try a different search</p>
           </div>
         ) : (
-          vendors.map((vendor) => (
+          safeVendors.map((vendor) => (
             <ShopCard
               key={vendor.id}
               vendor={vendor}

@@ -61,10 +61,11 @@ export default function HomeScreen() {
 
   // Randomize trending products on mount & reload every 1 minute
   useEffect(() => {
-    if (!products || products.length === 0) return;
+    const safeProducts = Array.isArray(products) ? products : [];
+    if (safeProducts.length === 0) return;
 
     const pickRandomTrending = () => {
-      const shuffled = [...products].sort(() => Math.random() - 0.5);
+      const shuffled = [...safeProducts].sort(() => Math.random() - 0.5);
       // Pick random 8 items (or all if fewer)
       setTrendingItems(shuffled.slice(0, 8));
     };
@@ -76,7 +77,8 @@ export default function HomeScreen() {
   }, [products]);
 
   // Build a map for quick vendor lookup when rendering products
-  const vendorMap = Object.fromEntries(vendors.map((v) => [v.id, v]));
+  const safeVendors = Array.isArray(vendors) ? vendors : [];
+  const vendorMap = Object.fromEntries(safeVendors.map((v) => [v.id, v]));
 
   const greeting = () => {
     const hour = new Date().getHours();
@@ -170,7 +172,12 @@ export default function HomeScreen() {
             <ProductGridSkeleton />
           ) : (
             <div className="grid grid-cols-2 gap-3">
-              {(trendingItems.length > 0 ? trendingItems : (products as Product[])).map((product) => {
+              {(Array.isArray(trendingItems) && trendingItems.length > 0
+                ? trendingItems
+                : Array.isArray(products)
+                ? (products as Product[])
+                : []
+              ).map((product) => {
                 const vendor = product.vendor?.id ? vendorMap[product.vendor.id] : null;
                 const open = vendor ? isVendorOpen(vendor) : true;
                 return (

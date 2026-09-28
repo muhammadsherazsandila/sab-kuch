@@ -40,7 +40,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
     try {
       const res = await apiClient.get<ApiResponse<AppNotification[]>>('/users/me/notifications');
-      const data = res.data?.data || [];
+      const data = Array.isArray(res.data?.data) ? res.data.data : [];
       const currentKnown = get().knownNotificationIds;
       const isFirstFetch = !get().hasPolledOnce;
 

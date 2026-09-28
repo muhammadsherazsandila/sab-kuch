@@ -14,8 +14,14 @@ export function useFeaturedProducts() {
   useEffect(() => {
     apiClient
       .get<ApiResponse<Product[]>>('/products/featured')
-      .then((res) => setProducts(res.data.data))
-      .catch((err) => setError(err.message))
+      .then((res) => {
+        const data = res?.data?.data;
+        setProducts(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => {
+        setError(err.message);
+        setProducts([]);
+      })
       .finally(() => setLoading(false));
   }, []);
 

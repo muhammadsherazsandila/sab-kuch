@@ -28,7 +28,21 @@ apiClient.interceptors.request.use((config) => {
 
 // ── Response interceptor — unwrap envelope + handle auth errors ────────────
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // If the server returned an HTML page (e.g., Vercel SPA rewrite fallback because API is unreachable or VITE_API_URL is missing)
+    if (
+      typeof response.data === 'string' &&
+      (response.data.trim().startsWith('<!DOCTYPE html') || response.data.trim().startsWith('<html'))
+    ) {
+      console.warn(
+        '[apiClient] Received HTML document instead of JSON. Ensure your backend server is running and VITE_API_URL is set in Vercel environment variables.'
+      );
+      return Promise.reject(
+        new Error('API returned an HTML response instead of JSON. Check backend server URL.')
+      );
+    }
+    return response;
+  },
   (error) => {
     if (error.response?.status === 401) {
       // Token expired or invalid — clear auth state cleanly
