@@ -24,6 +24,7 @@ export default defineConfig({
 
       // ── Web App Manifest ────────────────────────────────────────────────────
       manifest: {
+        id: "/",
         name: "Sab Kuch — Delivery App",
         short_name: "Sab Kuch",
         description:
@@ -35,13 +36,23 @@ export default defineConfig({
         scope: "/",
         start_url: "/",
         icons: [
-          { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
-          { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+          {
+            src: "/icons/icon-192.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "any",
+          },
           {
             src: "/icons/icon-512.png",
             sizes: "512x512",
             type: "image/png",
-            purpose: "any maskable",
+            purpose: "any",
+          },
+          {
+            src: "/icons/icon-512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
           },
         ],
       },
@@ -78,17 +89,18 @@ export default defineConfig({
       devOptions: {
         // Enable PWA in development so we can test install prompts
         enabled: true,
-        type: "module",
+        type: "classic",
       },
     }),
   ],
 
   // Path alias — allows "import X from '@/components/...' " anywhere
   resolve: {
-    alias: { "@": path.resolve(__dirname, "./src") },
+    alias: { "@": path.resolve(import.meta.dirname, "./src") },
   },
 
   server: {
+    host: true,
     port: 3000,
     // Proxy API calls to Express backend during development
     proxy: {
@@ -98,5 +110,16 @@ export default defineConfig({
       },
     },
     allowedHosts: true,
+  },
+  preview: {
+    host: true,
+    port: 3000,
+    allowedHosts: true,
+    proxy: {
+      "/api": {
+        target: "http://localhost:5000",
+        changeOrigin: true,
+      },
+    },
   },
 });

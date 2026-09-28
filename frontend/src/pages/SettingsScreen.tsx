@@ -16,10 +16,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   User, Mail, Phone, Hash, ShoppingBag, Edit3,
-  MapPin, Bookmark, Bell, LogOut, ChevronRight,
+  MapPin, Bookmark, Bell, LogOut, ChevronRight, Download, Smartphone,
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useAuthStore } from '@/store/authStore';
+import { usePWAInstall } from '@/lib/pwa';
 
 import apiClient from '@/lib/apiClient';
 import { subscribeToPushNotifications } from '@/lib/pushNotifications';
@@ -29,6 +30,7 @@ import { toast } from 'sonner';
 export default function SettingsScreen() {
   const navigate = useNavigate();
   const { user, logout, updateUser } = useAuthStore();
+  const { canInstall, isStandalone, isIOS, triggerInstallPrompt } = usePWAInstall();
   const [notificationsEnabled, setNotificationsEnabled] = useState(
     user?.notificationsEnabled !== false
   );
@@ -217,6 +219,36 @@ export default function SettingsScreen() {
 
           </div>
         </div>
+
+        {/* ── Install App (if not already installed) ────────────────────── */}
+        {!isStandalone && (
+          <button
+            onClick={async () => {
+              if (isIOS) {
+                toast.info('On iOS Safari: Tap Share → "Add to Home Screen"');
+              } else if (canInstall) {
+                const accepted = await triggerInstallPrompt();
+                if (accepted) toast.success('Sab Kuch installed successfully!');
+              } else {
+                toast.info('Look for the install icon ⊕ in your browser address bar.');
+              }
+            }}
+            className="w-full bg-gradient-to-r from-primary-500 to-amber-500 text-white rounded-2xl shadow-sm px-4 py-3.5 flex items-center justify-between hover:opacity-95 active:scale-[0.99] transition-all cursor-pointer"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                <Smartphone size={18} className="text-white" />
+              </div>
+              <div className="text-left">
+                <p className="font-bold text-sm text-white">Install App</p>
+                <p className="text-xs text-white/85">Add to home screen for instant ordering</p>
+              </div>
+            </div>
+            <div className="bg-white/20 rounded-lg p-1.5">
+              <Download size={16} className="text-white" />
+            </div>
+          </button>
+        )}
 
         {/* ── Logout ───────────────────────────────────────────────────── */}
         {user && (

@@ -11,6 +11,7 @@ import { useRef, useEffect } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import BottomNav from './BottomNav';
 import NotificationDrawer from './NotificationDrawer';
+import InstallBanner from './InstallBanner';
 import { useAuthStore } from '@/store/authStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import { subscribeToPushNotifications } from '@/lib/pushNotifications';
@@ -124,6 +125,9 @@ export default function AppLayout() {
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
+      {/* Top PWA Install Banner */}
+      <InstallBanner />
+
       {/* Page content — padded bottom so it never hides behind the sticky bottom bar */}
       <main className="flex-1 pb-24 overflow-y-auto">
         <Outlet />

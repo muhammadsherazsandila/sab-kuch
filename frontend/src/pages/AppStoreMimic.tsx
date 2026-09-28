@@ -26,7 +26,7 @@ import {
   Share, PlusSquare, ArrowDownCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { isIOS, isAndroid, isInStandaloneMode } from '@/lib/pwa';
+import { isIOS, isAndroid, isInStandaloneMode, triggerInstallPrompt, canInstall } from '@/lib/pwa';
 
 // ── App metadata shown on the mimic page ───────────────────────────────────
 const APP_META = {
@@ -71,15 +71,16 @@ export default function AppStoreMimic() {
   }
 
   // ── "Install App" — platform-aware behaviour ───────────────────────────
-  // NOTE: we do NOT trigger the actual install prompt here.
-  // The BeforeInstallPromptEvent is captured in App.tsx and fired at checkout.
-  // Here we just tell the user what will happen.
-  function handleInstall() {
+  async function handleInstall() {
     if (os === 'ios') {
       // iOS has no programmatic install — show the share sheet tooltip
       setShowIosTooltip(true);
+    } else if (canInstall()) {
+      const accepted = await triggerInstallPrompt();
+      if (accepted) {
+        navigate('/');
+      }
     } else {
-      // Android: proceed to app; the install banner will appear at checkout
       navigate('/');
     }
   }

@@ -60,7 +60,7 @@ export default function CheckoutScreen() {
   // Deferred PWA prompt trigger
   useEffect(() => {
     if (!isInStandaloneMode()) {
-      if (canInstall() && isAndroid()) {
+      if (canInstall()) {
         triggerInstallPrompt().catch(() => {});
       } else if (isIOS()) {
         setShowIosInstallModal(true);
