@@ -28,6 +28,8 @@ import CheckoutScreen    from '@/pages/CheckoutScreen';
 import SettingsScreen    from '@/pages/SettingsScreen';
 import EditProfileScreen from '@/pages/EditProfileScreen';
 import SearchScreen      from '@/pages/SearchScreen';
+import PrivacyPolicyScreen from '@/pages/PrivacyPolicyScreen';
+import TermsConditionsScreen from '@/pages/TermsConditionsScreen';
 import NotFoundScreen    from '@/pages/NotFoundScreen';
 import { Toaster }        from 'sonner';
 
@@ -84,6 +86,12 @@ export default function App() {
             <Route path="settings/profile"   element={<EditProfileScreen />} />
             <Route path="settings/city"      element={<SettingsScreen />} />
             <Route path="settings/addresses" element={<EditProfileScreen />} />
+
+            {/* Legal pages */}
+            <Route path="privacy"            element={<PrivacyPolicyScreen />} />
+            <Route path="privacy-policy"     element={<Navigate to="/privacy" replace />} />
+            <Route path="terms"              element={<TermsConditionsScreen />} />
+            <Route path="terms-and-conditions" element={<Navigate to="/terms" replace />} />
           </Route>
 
           {/* ── 404 catch-all ─────────────────────────────────────────────── */}

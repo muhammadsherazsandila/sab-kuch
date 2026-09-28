@@ -17,6 +17,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   User, Mail, Phone, Hash, ShoppingBag, Edit3,
   MapPin, Bookmark, Bell, LogOut, ChevronRight, Download, Smartphone,
+  Shield, FileText,
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useAuthStore } from '@/store/authStore';
@@ -122,6 +123,18 @@ export default function SettingsScreen() {
       label: 'Operating Area',
       sub: 'Hostel City, Islamabad (Fixed)',
       action: () => {},
+    },
+    {
+      icon: Shield,
+      label: 'Privacy Policy',
+      sub: 'How we protect your hostel & order data',
+      action: () => navigate('/privacy'),
+    },
+    {
+      icon: FileText,
+      label: 'Terms & Conditions',
+      sub: 'User agreement, ordering & delivery rules',
+      action: () => navigate('/terms'),
     },
   ];
 
@@ -277,6 +290,21 @@ export default function SettingsScreen() {
             />
           </div>
           <p className="text-center text-xs text-gray-400 font-medium">Sab Kuch v1.0.0</p>
+          <div className="flex items-center gap-2.5 text-[11px] text-gray-400 mt-1">
+            <button
+              onClick={() => navigate('/terms')}
+              className="hover:text-primary-600 transition-colors"
+            >
+              Terms of Service
+            </button>
+            <span>•</span>
+            <button
+              onClick={() => navigate('/privacy')}
+              className="hover:text-primary-600 transition-colors"
+            >
+              Privacy Policy
+            </button>
+          </div>
         </div>
       </div>
 

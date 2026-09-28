@@ -7,17 +7,42 @@ import { prisma } from '../lib/prisma';
 import { sendSuccess, sendError } from '../utils/apiResponse';
 
 export const ProductController = {
-  /** GET /api/v1/products/featured — isFeatured=true, any vendor */
+  /** GET /api/v1/products/featured — isFeatured=true with automatic fallback to available products */
   async getFeaturedProducts(_req: Request, res: Response) {
-    const products = await prisma.product.findMany({
-      where: { isFeatured: true, status: 'AVAILABLE' },
+    // 1. Fetch featured products from active vendors
+    let products = await prisma.product.findMany({
+      where: {
+        isFeatured: true,
+        status: 'AVAILABLE',
+        vendor: { status: 'ACTIVE' },
+      },
       include: {
-        vendor: { select: { id: true, name: true, slug: true, logoUrl: true } },
+        vendor: { select: { id: true, name: true, slug: true, logoUrl: true, status: true } },
         category: true,
       },
       take: 20,
       orderBy: { createdAt: 'desc' },
     });
+
+    // 2. If fewer than 8 featured products, fill up with any available products from active vendors
+    if (products.length < 8) {
+      const existingIds = products.map((p) => p.id);
+      const additionalProducts = await prisma.product.findMany({
+        where: {
+          id: { notIn: existingIds },
+          status: 'AVAILABLE',
+          vendor: { status: 'ACTIVE' },
+        },
+        include: {
+          vendor: { select: { id: true, name: true, slug: true, logoUrl: true, status: true } },
+          category: true,
+        },
+        take: 20 - products.length,
+        orderBy: { createdAt: 'desc' },
+      });
+      products = [...products, ...additionalProducts];
+    }
+
     return sendSuccess(res, products);
   },
 

@@ -12,14 +12,14 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, ShoppingCart, MapPin } from 'lucide-react';
+import { Search, ShoppingCart, MapPin, ChevronRight, Star, Clock, Store, LogIn } from 'lucide-react';
 import NotificationBell from '@/components/layout/NotificationBell';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/store/authStore';
 import { useCartStore } from '@/store/cartStore';
 import { useFeaturedProducts } from '@/hooks/useProducts';
 import { useVendors } from '@/hooks/useVendors';
+import { useBanners } from '@/hooks/useBanners';
 import { Product, Vendor } from '@/types';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -27,23 +27,29 @@ import { cn } from '@/lib/utils';
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 /** Determine if a vendor is currently open based on today's operating hours */
-function isVendorOpen(vendor: Vendor): boolean {
+function isVendorOpen(vendor?: Vendor | null): boolean {
+  if (!vendor) return true;
   const today = new Date().getDay(); // 0=Sun
   const hours = vendor.operatingHours?.find((h) => h.dayOfWeek === today);
   if (!hours || hours.isClosed) return false;
+  if (!hours.openTime || !hours.closeTime) return true;
 
-  const now = new Date();
-  const [openH, openM]   = hours.openTime.split(':').map(Number);
-  const [closeH, closeM] = hours.closeTime.split(':').map(Number);
-  const currentMins = now.getHours() * 60 + now.getMinutes();
-  return currentMins >= openH * 60 + openM && currentMins < closeH * 60 + closeM;
+  try {
+    const now = new Date();
+    const [openH, openM] = hours.openTime.split(':').map(Number);
+    const [closeH, closeM] = hours.closeTime.split(':').map(Number);
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+    return currentMins >= openH * 60 + openM && currentMins < closeH * 60 + closeM;
+  } catch {
+    return true;
+  }
 }
 
-function formatPrice(price: number) {
-  return `Rs. ${price.toFixed(0)}`;
+function formatPrice(price?: number | string | null) {
+  if (price === undefined || price === null) return 'Rs. 0';
+  const num = typeof price === 'number' ? price : Number(price) || 0;
+  return `Rs. ${num.toFixed(0)}`;
 }
-
-import { useBanners } from '@/hooks/useBanners';
 
 export default function HomeScreen() {
   const navigate = useNavigate();
@@ -51,14 +57,17 @@ export default function HomeScreen() {
   const totalItems = useCartStore((s) => s.totalItems());
 
   const { products, loading: productsLoading } = useFeaturedProducts();
-  const { vendors } = useVendors();
+  const { vendors, loading: vendorsLoading } = useVendors();
   const { banners } = useBanners();
   const [trendingItems, setTrendingItems] = useState<Product[]>([]);
 
   // Randomize trending products on mount & reload every 1 minute
   useEffect(() => {
     const safeProducts = Array.isArray(products) ? products : [];
-    if (safeProducts.length === 0) return;
+    if (safeProducts.length === 0) {
+      setTrendingItems([]);
+      return;
+    }
 
     const pickRandomTrending = () => {
       const shuffled = [...safeProducts].sort(() => Math.random() - 0.5);
@@ -77,12 +86,20 @@ export default function HomeScreen() {
   const vendorMap = Object.fromEntries(safeVendors.map((v) => [v.id, v]));
 
   const greeting = () => {
+    if (!user) return 'Welcome to Sab Kuch 👋';
     const hour = new Date().getHours();
-    const name = user?.name || 'there';
+    const name = user.name || 'there';
     if (hour < 12) return `Good morning, ${name} 👋`;
     if (hour < 17) return `Good afternoon, ${name} 👋`;
     return `Good evening, ${name} 👋`;
   };
+
+  const displayedProducts =
+    Array.isArray(trendingItems) && trendingItems.length > 0
+      ? trendingItems
+      : Array.isArray(products)
+      ? (products as Product[])
+      : [];
 
   return (
     <div className="bg-white min-h-full">
@@ -107,8 +124,18 @@ export default function HomeScreen() {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-3 flex-shrink-0">
-            <NotificationBell />
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {!user ? (
+              <button
+                onClick={() => navigate('/auth')}
+                className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-full bg-primary-500 hover:bg-primary-600 text-white transition-colors shadow-xs"
+              >
+                <LogIn size={13} />
+                <span>Login</span>
+              </button>
+            ) : (
+              <NotificationBell />
+            )}
             <button
               className="relative p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
               onClick={() => navigate('/checkout')}
@@ -136,13 +163,36 @@ export default function HomeScreen() {
           <div className="pl-10 pr-3 bg-gray-50 border border-gray-200 group-hover:border-primary-300 h-10 rounded-full text-sm text-gray-400 flex items-center justify-between select-none transition-all shadow-xs">
             <span>Search food, shops, items…</span>
             <span className="text-[10px] bg-orange-100 text-primary-600 font-semibold px-2 py-0.5 rounded-full">
-              Paratha, Roti...
+              Paratha, Burger...
             </span>
           </div>
         </div>
       </div>
 
-      <div className="px-4 space-y-6 pt-4 pb-4">
+      <div className="px-4 space-y-6 pt-4 pb-6">
+        {/* ── Guest Info Banner (when logged out) ─────────────────────────── */}
+        {!user && (
+          <div className="bg-gradient-to-r from-orange-50 via-amber-50 to-orange-50 border border-orange-200/80 rounded-2xl p-3.5 flex items-center justify-between shadow-xs">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
+              <div className="w-9 h-9 rounded-xl bg-primary-500 text-white flex items-center justify-center flex-shrink-0 text-base shadow-xs">
+                ✨
+              </div>
+              <div className="min-w-0">
+                <p className="font-bold text-xs sm:text-sm text-gray-900 leading-tight">Browsing as Guest</p>
+                <p className="text-[11px] text-gray-500 leading-tight mt-0.5 truncate">
+                  Log in for live order tracking & fast hostel delivery
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('/auth')}
+              className="flex-shrink-0 bg-primary-500 hover:bg-primary-600 text-white font-semibold text-xs px-3.5 py-1.5 rounded-xl transition-colors shadow-xs"
+            >
+              Sign In
+            </button>
+          </div>
+        )}
+
         {/* ── Promotional & Update Banners (Managed via Admin) ─────────────── */}
         {banners.length > 0 && (
           <section>
@@ -192,31 +242,165 @@ export default function HomeScreen() {
           </section>
         )}
 
+        {/* ── Popular Shops Section ────────────────────────────────────────── */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-1.5">
+              <h2 className="font-bold text-gray-900 text-base">🏪 Popular Shops</h2>
+              <span className="text-[10px] bg-primary-50 text-primary-600 font-semibold px-2 py-0.5 rounded-full">
+                Hostel City
+              </span>
+            </div>
+            <button
+              className="text-primary-500 text-xs font-semibold hover:underline flex items-center gap-0.5"
+              onClick={() => navigate('/shops')}
+            >
+              <span>See all</span>
+              <ChevronRight size={14} />
+            </button>
+          </div>
+
+          {vendorsLoading ? (
+            <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-1 -mx-4 px-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex-shrink-0 w-60 bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-xs animate-pulse">
+                  <div className="h-28 bg-gray-100" />
+                  <div className="p-3 space-y-2">
+                    <div className="h-3.5 bg-gray-100 rounded w-3/4" />
+                    <div className="h-3 bg-gray-100 rounded w-1/2" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : safeVendors.length === 0 ? (
+            <div className="bg-gray-50 border border-dashed border-gray-200 rounded-2xl p-5 text-center">
+              <p className="text-2xl mb-1">🏪</p>
+              <p className="text-xs font-semibold text-gray-700">No shops available right now</p>
+              <p className="text-[11px] text-gray-400 mt-0.5">Please check back soon</p>
+            </div>
+          ) : (
+            <div className="flex gap-3.5 overflow-x-auto scrollbar-hide pb-1 -mx-4 px-4">
+              {safeVendors.map((vendor) => {
+                const open = isVendorOpen(vendor);
+                return (
+                  <div
+                    key={vendor.id}
+                    onClick={() => navigate(`/shops/${vendor.slug}`)}
+                    className="flex-shrink-0 w-64 bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-xs hover:shadow-sm transition-all cursor-pointer active:scale-[0.99] flex flex-col"
+                  >
+                    {/* Cover image */}
+                    <div className="relative h-28 bg-gradient-to-br from-orange-100 to-amber-100 overflow-hidden">
+                      {vendor.coverImageUrl ? (
+                        <img
+                          src={vendor.coverImageUrl}
+                          alt={vendor.name}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-3xl">
+                          🏪
+                        </div>
+                      )}
+                      {/* Open / Closed badge */}
+                      <div className="absolute top-2 right-2">
+                        <Badge
+                          variant={open ? 'success' : 'destructive'}
+                          className="text-[10px] font-bold px-2 py-0.5 shadow-xs"
+                        >
+                          {open ? 'Open' : 'Closed'}
+                        </Badge>
+                      </div>
+                      {/* Vendor Type chip */}
+                      {vendor.vendorType?.name && (
+                        <div className="absolute bottom-2 left-2">
+                          <span className="bg-black/55 backdrop-blur-xs text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                            {vendor.vendorType.name}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Shop Details */}
+                    <div className="p-3 flex-1 flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between gap-2">
+                          <h3 className="font-bold text-gray-900 text-sm truncate flex-1">{vendor.name}</h3>
+                          {vendor.logoUrl && (
+                            <img
+                              src={vendor.logoUrl}
+                              alt=""
+                              className="w-6 h-6 rounded-md object-cover border border-gray-100 flex-shrink-0"
+                            />
+                          )}
+                        </div>
+                        {vendor.description && (
+                          <p className="text-[11px] text-gray-400 line-clamp-1 mt-0.5">
+                            {vendor.description}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Stats */}
+                      <div className="flex items-center gap-3 text-[11px] text-gray-500 mt-2.5 pt-2 border-t border-gray-50">
+                        <div className="flex items-center gap-1 font-semibold text-gray-700">
+                          <Star size={11} className="text-amber-400 fill-amber-400" />
+                          <span>{vendor.averageRating > 0 ? vendor.averageRating.toFixed(1) : 'New'}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Clock size={11} className="text-gray-400" />
+                          <span>{vendor.estimatedDeliveryMinutes || 25} min</span>
+                        </div>
+                        <div className="flex items-center gap-1 ml-auto">
+                          <span className="text-primary-600 font-semibold">
+                            {vendor.deliveryFee === 0 ? 'Free' : `Rs. ${vendor.deliveryFee}`}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+
         {/* ── Trending Products ──────────────────────────────────────────── */}
         <section>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-1.5">
-              <h2 className="font-bold text-gray-900 text-base">🔥 Trending Now</h2>
+              <h2 className="font-bold text-gray-900 text-base">🔥 Trending Products</h2>
               <span className="text-[10px] text-gray-400 font-normal">(Auto-refreshed)</span>
             </div>
             <button
-              className="text-primary-500 text-xs font-semibold"
+              className="text-primary-500 text-xs font-semibold hover:underline flex items-center gap-0.5"
               onClick={() => navigate('/shops')}
             >
-              See all
+              <span>See all</span>
+              <ChevronRight size={14} />
             </button>
           </div>
 
           {productsLoading ? (
             <ProductGridSkeleton />
+          ) : displayedProducts.length === 0 ? (
+            <div className="bg-gray-50 border border-dashed border-gray-200 rounded-2xl p-6 text-center">
+              <p className="text-3xl mb-2">🍔</p>
+              <p className="text-xs font-bold text-gray-800">Explore menu items from local shops</p>
+              <p className="text-[11px] text-gray-400 mt-1 max-w-xs mx-auto">
+                Browse our partner shops in Hostel City to order food, groceries, and essentials.
+              </p>
+              <button
+                onClick={() => navigate('/shops')}
+                className="mt-3.5 inline-flex items-center gap-1 bg-primary-500 hover:bg-primary-600 text-white text-xs font-semibold px-4 py-2 rounded-xl transition-colors shadow-xs"
+              >
+                <span>Browse All Shops</span>
+                <ChevronRight size={14} />
+              </button>
+            </div>
           ) : (
             <div className="grid grid-cols-2 gap-3">
-              {(Array.isArray(trendingItems) && trendingItems.length > 0
-                ? trendingItems
-                : Array.isArray(products)
-                ? (products as Product[])
-                : []
-              ).map((product) => {
+              {displayedProducts.map((product) => {
                 const vendor = product.vendor?.id ? vendorMap[product.vendor.id] : null;
                 const open = vendor ? isVendorOpen(vendor) : true;
                 return (
@@ -233,99 +417,128 @@ export default function HomeScreen() {
       </div>
     </div>
   );
-
 }
 
 // ── Product Card ─────────────────────────────────────────────────────────────
 
 function ProductCard({ product, isShopOpen }: { product: Product; isShopOpen: boolean }) {
+  const navigate = useNavigate();
   const { addItem, items } = useCartStore();
   const cartQty = items.find((i) => i.product.id === product.id)?.quantity ?? 0;
 
-  const effectivePrice = product.discountedPrice ?? product.price;
+  const hasDiscount = Boolean(product.discountedPrice && product.discountedPrice < product.price);
+  const effectivePrice = hasDiscount ? product.discountedPrice! : product.price;
+
+  const handleCardClick = () => {
+    if (product.vendor?.slug) {
+      navigate(`/shops/${product.vendor.slug}`);
+    }
+  };
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-sm">
+    <div
+      onClick={handleCardClick}
+      className={cn(
+        'bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-xs hover:shadow-sm transition-all flex flex-col',
+        product.vendor?.slug && 'cursor-pointer'
+      )}
+    >
       {/* Product image */}
       <div className="relative h-36 bg-gradient-to-br from-orange-50 to-amber-50 overflow-hidden">
         {product.imageUrl ? (
-          <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+          <img
+            src={product.imageUrl}
+            alt={product.name}
+            className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+            loading="lazy"
+          />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-3xl">🍽️</div>
         )}
         {/* Open/closed badge */}
         <div className="absolute top-2 right-2">
-          <Badge variant={isShopOpen ? 'success' : 'destructive'} className="text-[10px]">
+          <Badge
+            variant={isShopOpen ? 'success' : 'destructive'}
+            className="text-[10px] font-bold px-2 py-0.5 shadow-xs"
+          >
             {isShopOpen ? 'Open' : 'Closed'}
           </Badge>
         </div>
         {/* Discount badge */}
-        {product.discountedPrice && (
+        {hasDiscount && (
           <div className="absolute top-2 left-2">
-            <Badge variant="warning" className="text-[10px]">Sale</Badge>
+            <Badge variant="warning" className="text-[10px] font-bold px-2 py-0.5 shadow-xs">
+              Sale
+            </Badge>
           </div>
         )}
       </div>
 
       {/* Product info */}
-      <div className="p-3">
-        <h3 className="font-semibold text-gray-900 text-sm leading-tight line-clamp-1">{product.name}</h3>
-        {product.vendor && (
-          <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{product.vendor.name}</p>
-        )}
-        <div className="flex items-center justify-between mt-2">
+      <div className="p-3 flex-1 flex flex-col justify-between">
+        <div>
+          <h3 className="font-semibold text-gray-900 text-sm leading-tight line-clamp-1">{product.name}</h3>
+          {product.vendor && (
+            <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">{product.vendor.name}</p>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-gray-50">
           <div>
             <span className="font-bold text-gray-900 text-sm">{formatPrice(effectivePrice)}</span>
-            {product.discountedPrice && (
+            {hasDiscount && (
               <span className="text-xs text-gray-400 line-through ml-1">{formatPrice(product.price)}</span>
             )}
           </div>
+
           {/* Add to cart */}
-          {cartQty === 0 ? (
-            <button
-              onClick={() => {
-                if (!isShopOpen) {
-                  toast.warning(`${product.vendor?.name ?? 'This shop'} is currently closed`);
-                  return;
-                }
-                addItem(
-                  product,
-                  product.vendor?.id ?? '',
-                  product.vendor?.name ?? '',
-                );
-              }}
-              className={`w-7 h-7 rounded-full flex items-center justify-center text-lg font-bold active:scale-95 transition-transform ${
-                isShopOpen ? 'bg-primary-500 text-white' : 'bg-gray-200 text-gray-400'
-              }`}
-              title={isShopOpen ? 'Add to cart' : 'Shop is currently closed'}
-            >
-              +
-            </button>
-          ) : (
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => useCartStore.getState().removeItem(product.id)}
-                className="w-6 h-6 rounded-full border-2 border-primary-500 text-primary-500 flex items-center justify-center font-bold text-sm"
-              >
-                −
-              </button>
-              <span className="text-sm font-bold text-primary-500 w-4 text-center">{cartQty}</span>
+          <div onClick={(e) => e.stopPropagation()}>
+            {cartQty === 0 ? (
               <button
                 onClick={() => {
                   if (!isShopOpen) {
                     toast.warning(`${product.vendor?.name ?? 'This shop'} is currently closed`);
                     return;
                   }
-                  addItem(product, product.vendor?.id ?? '', product.vendor?.name ?? '');
+                  addItem(
+                    product,
+                    product.vendor?.id ?? '',
+                    product.vendor?.name ?? '',
+                  );
                 }}
-                className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-sm ${
-                  isShopOpen ? 'bg-primary-500 text-white' : 'bg-gray-200 text-gray-400'
+                className={`w-7 h-7 rounded-full flex items-center justify-center text-lg font-bold active:scale-95 transition-transform ${
+                  isShopOpen ? 'bg-primary-500 text-white shadow-xs hover:bg-primary-600' : 'bg-gray-200 text-gray-400'
                 }`}
+                title={isShopOpen ? 'Add to cart' : 'Shop is currently closed'}
               >
                 +
               </button>
-            </div>
-          )}
+            ) : (
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => useCartStore.getState().removeItem(product.id)}
+                  className="w-6 h-6 rounded-full border border-primary-500 text-primary-500 flex items-center justify-center font-bold text-sm hover:bg-primary-50 active:scale-95 transition-transform"
+                >
+                  −
+                </button>
+                <span className="text-xs font-bold text-primary-600 w-4 text-center">{cartQty}</span>
+                <button
+                  onClick={() => {
+                    if (!isShopOpen) {
+                      toast.warning(`${product.vendor?.name ?? 'This shop'} is currently closed`);
+                      return;
+                    }
+                    addItem(product, product.vendor?.id ?? '', product.vendor?.name ?? '');
+                  }}
+                  className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-sm shadow-xs ${
+                    isShopOpen ? 'bg-primary-500 text-white hover:bg-primary-600 active:scale-95 transition-transform' : 'bg-gray-200 text-gray-400'
+                  }`}
+                >
+                  +
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

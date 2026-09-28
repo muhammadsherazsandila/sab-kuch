@@ -173,13 +173,6 @@ export default function AuthScreen() {
               width="340"
             />
           </div>
-
-          <p className="text-center text-xs text-gray-400 leading-relaxed pt-2">
-            By continuing you agree to our{' '}
-            <button type="button" className="text-primary-500 underline">Terms</button>
-            {' '}and{' '}
-            <button type="button" className="text-primary-500 underline">Privacy Policy</button>
-          </p>
         </form>
       )}
 
@@ -227,10 +220,31 @@ export default function AuthScreen() {
         </form>
       )}
 
-      {/* Guest option */}
-      <div className="mt-auto pb-10 pt-8 text-center">
+      {/* Terms & Privacy disclaimer */}
+      <p className="text-[11px] text-gray-400 text-center mt-6 px-2 leading-relaxed">
+        By continuing, you agree to Sab Kuch's{' '}
         <button
-          className="text-sm text-gray-400 underline"
+          type="button"
+          onClick={() => navigate('/terms')}
+          className="text-primary-600 font-semibold underline hover:text-primary-700"
+        >
+          Terms & Conditions
+        </button>{' '}
+        and{' '}
+        <button
+          type="button"
+          onClick={() => navigate('/privacy')}
+          className="text-primary-600 font-semibold underline hover:text-primary-700"
+        >
+          Privacy Policy
+        </button>
+        .
+      </p>
+
+      {/* Guest option */}
+      <div className="mt-auto pb-10 pt-6 text-center">
+        <button
+          className="text-sm text-gray-400 underline hover:text-gray-600 transition-colors"
           onClick={() => navigate('/')}
         >
           Continue browsing as guest
