@@ -1,0 +1,444 @@
+// ─────────────────────────────────────────────────────────────────────────────
+//  SAB KUCH — Prisma Schema
+//
+//  Design Philosophy:
+//  - Generic / multi-category: no hard-coded "Food" tables.
+//  - Vendors = any shop, café, pharmacy, grocery, etc.
+//  - Products belong to Categories which belong to Vendors.
+//  - Orders are polymorphic: standard product orders OR custom orders.
+//  - Multi-step order status tracked via OrderStatusHistory.
+//  - Fully auditable with createdAt / updatedAt on every model.
+// ─────────────────────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+/// Platform-level user roles
+enum UserRole {
+  CUSTOMER
+  VENDOR_OWNER // owns one or more shops
+  RIDER // delivery agent
+  ADMIN // platform admin
+}
+
+/// Status steps for a standard order (and custom order)
+enum OrderStatus {
+  PENDING // placed, awaiting vendor confirmation
+  CONFIRMED // vendor accepted
+  PREPARING // vendor is preparing/packing
+  READY_FOR_PICKUP // vendor packed, waiting for rider
+  ON_THE_WAY // rider picked up, en route
+  DELIVERED // successfully delivered
+  CANCELLED // cancelled by customer or vendor
+  REFUNDED // refund initiated
+}
+
+/// Type of order
+enum OrderType {
+  STANDARD // products selected from a vendor menu
+  CUSTOM // user describes what they need in free text
+}
+
+/// Vendor operational status
+enum VendorStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING_REVIEW
+}
+
+/// Product availability status
+enum ProductStatus {
+  AVAILABLE
+  OUT_OF_STOCK
+  HIDDEN
+}
+
+// ─── Models ──────────────────────────────────────────────────────────────────
+
+/// Platform users (customers, vendors, riders, admins)
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  phone        String?  @unique
+  passwordHash String? // null for magic-link only users
+  avatarUrl    String?
+  role         UserRole @default(CUSTOMER)
+  customerId   String   @unique @default(cuid()) // human-readable customer ID (e.g. SK-00123)
+  cityId       String?
+  city         City?    @relation(fields: [cityId], references: [id])
+  isVerified           Boolean  @default(false)
+  isActive             Boolean  @default(true)
+  notificationsEnabled Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+
+  // Relations
+  otpTokens         OtpToken[]
+  addresses         Address[]
+  orders            Order[]            @relation("CustomerOrders")
+  vendorProfiles    VendorProfile[] // a user can own multiple shops
+  riderProfile      RiderProfile?
+  notifications     Notification[]
+  pushSubscriptions PushSubscription[]
+
+  @@map("users")
+}
+
+/// One-time passwords / magic link tokens
+model OtpToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String    @unique
+  type      String // "EMAIL_OTP" | "MAGIC_LINK" | "PHONE_OTP"
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@map("otp_tokens")
+}
+
+/// Delivery addresses saved by a user
+model Address {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label      String // "Home", "Work", "Other"
+  line1      String
+  line2      String?
+  cityId     String
+  city       City     @relation(fields: [cityId], references: [id])
+  postalCode String?
+  latitude   Float?
+  longitude  Float?
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  orders Order[]
+
+  @@map("addresses")
+}
+
+/// Cities / service areas supported by the platform
+model City {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  state     String?
+  country   String   @default("India")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  users     User[]
+  addresses Address[]
+  vendors   Vendor[]
+
+  @@map("cities")
+}
+
+/// A Vendor is any shop/café/store listed on the platform
+model Vendor {
+  id                       String       @id @default(cuid())
+  slug                     String       @unique // URL-friendly identifier
+  name                     String
+  description              String?
+  logoUrl                  String?
+  coverImageUrl            String?
+  phone                    String?
+  email                    String?
+  address                  String?
+  latitude                 Float?
+  longitude                Float?
+  cityId                   String
+  city                     City         @relation(fields: [cityId], references: [id])
+  status                   VendorStatus @default(PENDING_REVIEW)
+  averageRating            Float        @default(0)
+  totalRatings             Int          @default(0)
+  estimatedDeliveryMinutes Int          @default(30)
+  minimumOrderAmount       Float        @default(0)
+  deliveryFee              Float        @default(0)
+  vendorTypeId             String // links to a generic VendorType (food, pharmacy, grocery…)
+  vendorType               VendorType   @relation(fields: [vendorTypeId], references: [id])
+  createdAt                DateTime     @default(now())
+  updatedAt                DateTime     @updatedAt
+
+  // Relations
+  vendorProfile  VendorProfile?
+  operatingHours OperatingHours[]
+  categories     Category[]
+  products       Product[]
+  orders         Order[]          @relation("VendorOrders")
+  promotions     Promotion[]
+  ratings        Rating[]
+
+  @@map("vendors")
+}
+
+/// Generic vendor type (e.g., Restaurant, Grocery, Pharmacy, Hardware)
+model VendorType {
+  id        String   @id @default(cuid())
+  name      String   @unique // "Restaurant", "Grocery", "Pharmacy"
+  icon      String? // icon name or URL
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  vendors Vendor[]
+
+  @@map("vendor_types")
+}
+
+/// Links a User (VENDOR_OWNER role) to a Vendor shop
+model VendorProfile {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vendorId  String   @unique
+  vendor    Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  isPrimary Boolean  @default(true) // primary owner vs staff
+  createdAt DateTime @default(now())
+
+  @@unique([userId, vendorId])
+  @@map("vendor_profiles")
+}
+
+/// Weekly operating hours per vendor (one row per day of week)
+model OperatingHours {
+  id        String  @id @default(cuid())
+  vendorId  String
+  vendor    Vendor  @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  dayOfWeek Int // 0 = Sunday … 6 = Saturday
+  openTime  String // "09:00" (HH:MM 24h)
+  closeTime String // "22:00"
+  isClosed  Boolean @default(false)
+
+  @@unique([vendorId, dayOfWeek])
+  @@map("operating_hours")
+}
+
+/// Product categories — scoped per vendor (e.g., "Burgers", "Beverages")
+model Category {
+  id          String   @id @default(cuid())
+  vendorId    String
+  vendor      Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  imageUrl    String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products Product[]
+
+  @@unique([vendorId, name])
+  @@map("categories")
+}
+
+/// A product/menu item listed under a vendor's category
+model Product {
+  id              String        @id @default(cuid())
+  vendorId        String
+  vendor          Vendor        @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  categoryId      String
+  category        Category      @relation(fields: [categoryId], references: [id])
+  name            String
+  description     String?
+  imageUrl        String?
+  price           Float
+  discountedPrice Float? // null = no discount
+  unit            String? // "kg", "piece", "plate" — for non-food items
+  status          ProductStatus @default(AVAILABLE)
+  isFeatured      Boolean       @default(false)
+  sortOrder       Int           @default(0)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  orderItems OrderItem[]
+
+  @@map("products")
+}
+
+/// A customer order (standard or custom)
+model Order {
+  id              String        @id @default(cuid())
+  orderNumber     String        @unique @default(cuid()) // human-readable e.g. SK-ORD-0001
+  customerId      String
+  customer        User          @relation("CustomerOrders", fields: [customerId], references: [id])
+  vendorId        String? // null for fully custom orders with no vendor pre-selected
+  vendor          Vendor?       @relation("VendorOrders", fields: [vendorId], references: [id])
+  addressId       String?
+  deliveryAddress Address?      @relation(fields: [addressId], references: [id])
+  type            OrderType     @default(STANDARD)
+  status          OrderStatus   @default(PENDING)
+  subtotal        Float         @default(0)
+  deliveryFee     Float         @default(0)
+  discount        Float         @default(0)
+  total           Float         @default(0)
+  notes           String? // customer delivery notes
+  riderId         String?
+  rider           RiderProfile? @relation(fields: [riderId], references: [id])
+  promotionId     String?
+  promotion       Promotion?    @relation(fields: [promotionId], references: [id])
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Relations
+  items         OrderItem[]
+  customRequest CustomOrderRequest?
+  statusHistory OrderStatusHistory[]
+  rating        Rating?
+
+  @@map("orders")
+}
+
+/// Line items within a standard order
+model OrderItem {
+  id         String  @id @default(cuid())
+  orderId    String
+  order      Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product @relation(fields: [productId], references: [id])
+  quantity   Int
+  unitPrice  Float // snapshot of price at time of order
+  totalPrice Float
+  notes      String? // e.g. "No onions"
+
+  @@map("order_items")
+}
+
+/// Free-text request attached to a CUSTOM type order
+model CustomOrderRequest {
+  id              String   @id @default(cuid())
+  orderId         String   @unique
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  description     String // what the rider needs to buy
+  preferredShop   String? // user's preferred shop name (free text)
+  estimatedBudget Float?
+  deliveryFee     Float    @default(0)
+  createdAt       DateTime @default(now())
+
+  @@map("custom_order_requests")
+}
+
+/// Immutable audit log of every status change on an order
+model OrderStatusHistory {
+  id        String      @id @default(cuid())
+  orderId   String
+  order     Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status    OrderStatus
+  note      String? // optional internal note from vendor/admin
+  changedBy String? // userId who made the change
+  createdAt DateTime    @default(now())
+
+  @@map("order_status_history")
+}
+
+/// Rider (delivery agent) profile
+model RiderProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicleType     String? // "Bike", "Bicycle", "Car"
+  vehicleNumber   String?
+  isOnline        Boolean  @default(false)
+  currentLat      Float?
+  currentLng      Float?
+  totalDeliveries Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  orders Order[]
+
+  @@map("rider_profiles")
+}
+
+/// Star rating left by customer after delivery
+model Rating {
+  id         String   @id @default(cuid())
+  orderId    String   @unique
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  vendorId   String
+  vendor     Vendor   @relation(fields: [vendorId], references: [id])
+  customerId String
+  stars      Int // 1–5
+  review     String?
+  createdAt  DateTime @default(now())
+
+  @@map("ratings")
+}
+
+/// Promotional banners / discount codes
+model Promotion {
+  id             String   @id @default(cuid())
+  vendorId       String? // null = platform-wide promo
+  vendor         Vendor?  @relation(fields: [vendorId], references: [id])
+  code           String   @unique
+  title          String
+  description    String?
+  bannerImageUrl String?
+  discountType   String // "PERCENTAGE" | "FLAT"
+  discountValue  Float
+  minOrderAmount Float    @default(0)
+  maxUses        Int? // null = unlimited
+  usedCount      Int      @default(0)
+  startsAt       DateTime
+  expiresAt      DateTime
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  orders Order[]
+
+  @@map("promotions")
+}
+
+/// In-app notifications for users
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  body      String
+  type      String // "ORDER_UPDATE" | "PROMOTION" | "SYSTEM"
+  isRead    Boolean  @default(false)
+  data      Json? // arbitrary payload (e.g. { orderId: "..." })
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
+
+/// Web Push subscriptions for PWA push notifications
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dhKey String
+  authKey   String
+  createdAt DateTime @default(now())
+
+  @@map("push_subscriptions")
+}
+
+/// Search tags managed by admin (e.g. Paratha, Roti, Biryani)
+model SearchTag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("search_tags")
+}
+

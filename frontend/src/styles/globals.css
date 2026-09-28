@@ -1,0 +1,92 @@
+/**
+ * Global CSS
+ *
+ * 1. Tailwind directives
+ * 2. CSS custom properties (shadcn/ui design tokens)
+ * 3. Base resets for mobile-first PWA feel
+ */
+
+@import "tailwindcss";
+@config "../../tailwind.config.js";
+
+/* ── shadcn/ui CSS variables ──────────────────────────────────────────────── */
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
+    --primary: 16 100% 50%; /* #ff4500 = orangered */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 10%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 42%;
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 10%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 16 100% 50%;
+    --radius: 0.75rem;
+  }
+}
+
+/* ── Base resets ──────────────────────────────────────────────────────────── */
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    /* Prevent font scaling on device orientation change */
+    -webkit-text-size-adjust: 100%;
+    /* Smooth scrolling */
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    /* Prevent horizontal scroll on mobile */
+    overflow-x: hidden;
+    /* Safe area insets for notched devices */
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Remove tap highlight on mobile */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* ── Utility classes ──────────────────────────────────────────────────────── */
+@layer utilities {
+  /* Hide scrollbar but keep scrollability */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Bottom nav safe area padding */
+  .pb-nav {
+    padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  }
+
+  /* Gradient overlays */
+  .gradient-primary {
+    background: linear-gradient(135deg, #ff4500 0%, #ff6b35 100%);
+  }
+  .gradient-card {
+    background: linear-gradient(
+      to bottom,
+      transparent 40%,
+      rgba(0, 0, 0, 0.65) 100%
+    );
+  }
+}
