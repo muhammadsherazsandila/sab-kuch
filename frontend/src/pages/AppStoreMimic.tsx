@@ -94,8 +94,8 @@ export default function AppStoreMimic() {
       {/* ── App Hero ─────────────────────────────────────────────────────── */}
       <div className="px-5 pt-6 pb-4 flex items-start gap-4">
         {/* App icon */}
-        <div className="w-20 h-20 rounded-[22px] gradient-primary flex items-center justify-center flex-shrink-0 shadow-lg">
-          <ShoppingBag className="text-white" size={38} />
+        <div className="w-20 h-20 rounded-[22px] overflow-hidden flex items-center justify-center flex-shrink-0 shadow-lg border border-gray-100 bg-white p-2">
+          <img src="/logo.jpg" alt="Sab Kuch" className="w-full h-full object-contain aspect-square" />
         </div>
         <div className="flex-1 min-w-0">
           <h1 className="text-xl font-bold text-gray-900 leading-tight">{APP_META.name}</h1>
@@ -234,8 +234,10 @@ function AndroidHeader() {
 
 function DesktopHeader() {
   return (
-    <div className="gradient-primary px-5 py-4 flex items-center gap-3">
-      <ShoppingBag className="text-white" size={22} />
+    <div className="gradient-primary px-5 py-3.5 flex items-center gap-3">
+      <div className="w-8 h-8 rounded-lg overflow-hidden bg-white p-0.5 flex items-center justify-center flex-shrink-0 shadow-xs">
+        <img src="/logo.jpg" alt="Sab Kuch" className="w-full h-full object-contain aspect-square" />
+      </div>
       <span className="text-white font-bold text-lg">Sab Kuch</span>
     </div>
   );

@@ -571,8 +571,12 @@ export default function AdminDashboard() {
       <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col fixed top-0 bottom-0 left-0 z-30 text-xs">
         {/* Brand */}
         <div className="p-5 border-b border-slate-800 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-orange-600 flex items-center justify-center shadow-lg shadow-orange-600/30">
-            <Shield className="text-white" size={20} />
+          <div className="w-10 h-10 rounded-xl bg-white p-1 flex items-center justify-center shadow-lg shadow-orange-600/20 flex-shrink-0 overflow-hidden border border-slate-700">
+            <img
+              src="/logo.jpg"
+              alt="Sab Kuch"
+              className="w-full h-full object-contain aspect-square rounded-lg"
+            />
           </div>
           <div>
             <h1 className="font-bold text-base text-white leading-tight">SabKuch</h1>

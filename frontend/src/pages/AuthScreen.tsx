@@ -105,8 +105,12 @@ export default function AuthScreen() {
 
       {/* Brand mark */}
       <div className="mb-8">
-        <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center mb-4 shadow-lg">
-          <Shield size={26} className="text-white" />
+        <div className="w-16 h-16 rounded-2xl overflow-hidden flex items-center justify-center mb-4 shadow-md border border-gray-100 bg-white p-1.5 flex-shrink-0">
+          <img
+            src="/logo.jpg"
+            alt="Sab Kuch"
+            className="w-full h-full object-contain aspect-square rounded-xl"
+          />
         </div>
         <h1 className="text-2xl font-bold text-gray-900">
           {step === 'email' ? 'Login or Sign up' : 'Enter OTP'}

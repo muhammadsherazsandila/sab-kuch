@@ -236,8 +236,12 @@ export default function SettingsScreen() {
             className="w-full bg-gradient-to-r from-primary-500 to-amber-500 text-white rounded-2xl shadow-sm px-4 py-3.5 flex items-center justify-between hover:opacity-95 active:scale-[0.99] transition-all cursor-pointer"
           >
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                <Smartphone size={18} className="text-white" />
+              <div className="w-9 h-9 rounded-xl bg-white p-0.5 flex items-center justify-center flex-shrink-0 shadow-xs overflow-hidden">
+                <img
+                  src="/logo.jpg"
+                  alt="Sab Kuch"
+                  className="w-full h-full object-contain aspect-square rounded-lg"
+                />
               </div>
               <div className="text-left">
                 <p className="font-bold text-sm text-white">Install App</p>
@@ -263,8 +267,17 @@ export default function SettingsScreen() {
           </button>
         )}
 
-        {/* App version */}
-        <p className="text-center text-xs text-gray-300 pb-2">Sab Kuch v1.0.0</p>
+        {/* App version & logo */}
+        <div className="flex flex-col items-center justify-center pt-2 pb-4 gap-1.5">
+          <div className="w-8 h-8 rounded-xl bg-white border border-gray-200/80 shadow-xs p-1 flex items-center justify-center overflow-hidden">
+            <img
+              src="/logo.jpg"
+              alt="Sab Kuch"
+              className="w-full h-full object-contain aspect-square rounded-lg"
+            />
+          </div>
+          <p className="text-center text-xs text-gray-400 font-medium">Sab Kuch v1.0.0</p>
+        </div>
       </div>
 
       {/* ── Logout Confirmation Dialog ── */}

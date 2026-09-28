@@ -92,19 +92,29 @@ export default function HomeScreen() {
     <div className="bg-white min-h-full">
       {/* ── Header ────────────────────────────────────────────────────────── */}
       <div className="px-4 pt-12 pb-4 bg-white sticky top-0 z-10 border-b border-gray-100">
-        <div className="flex items-start justify-between mb-1">
-          <div>
-            <h1 className="text-lg font-bold text-gray-900">{greeting()}</h1>
-            <div className="flex items-center gap-1 mt-0.5">
-              <MapPin size={12} className="text-primary-500" />
-              <p className="text-xs text-gray-400">{user?.city?.name || 'Hostel City, Islamabad'}</p>
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0 bg-white border border-gray-100 shadow-xs flex items-center justify-center p-0.5">
+              <img
+                src="/logo.jpg"
+                alt="Sab Kuch"
+                className="w-full h-full object-contain aspect-square"
+              />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-base font-bold text-gray-900 truncate leading-tight">{greeting()}</h1>
+              <div className="flex items-center gap-1 mt-0.5">
+                <MapPin size={11} className="text-primary-500 flex-shrink-0" />
+                <p className="text-xs text-gray-400 truncate">{user?.city?.name || 'Hostel City, Islamabad'}</p>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-shrink-0">
             <NotificationBell />
             <button
-              className="relative p-2 rounded-full bg-gray-100"
+              className="relative p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
               onClick={() => navigate('/checkout')}
+              aria-label="View cart"
             >
               <ShoppingCart size={20} className="text-gray-600" />
               {totalItems > 0 && (

@@ -46,8 +46,8 @@ export default function InstallBanner() {
     <>
       <div className="bg-gradient-to-r from-orange-600 via-primary-500 to-amber-500 text-white px-4 py-2.5 shadow-md flex items-center justify-between text-xs z-30 transition-all">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center flex-shrink-0">
-            <Sparkles size={16} className="text-white" />
+          <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center flex-shrink-0 shadow-sm bg-white p-0.5 border border-white/20">
+            <img src="/logo.jpg" alt="Sab Kuch" className="w-full h-full object-contain aspect-square" />
           </div>
           <div className="min-w-0">
             <p className="font-bold text-white text-[13px] leading-tight">Install Sab Kuch</p>
