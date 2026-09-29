@@ -18,6 +18,7 @@ export const productRouter = Router();
 
 productRouter.get('/featured', ProductController.getFeaturedProducts);
 productRouter.get('/vendor/:vendorId', ProductController.getProductsByVendor);
+productRouter.get('/:id', ProductController.getProductById);
 productRouter.post('/', authenticate, requireVendorOrAdmin, validate(CreateProductSchema), ProductController.createProduct);
 productRouter.patch('/:id', authenticate, requireVendorOrAdmin, validate(UpdateProductSchema), ProductController.updateProduct);
 productRouter.delete('/:id', authenticate, requireVendorOrAdmin, ProductController.deleteProduct);

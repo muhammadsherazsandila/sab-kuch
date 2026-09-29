@@ -297,17 +297,14 @@ function ProductCard({
   const effectivePrice = hasDiscount ? product.discountedPrice! : product.price;
 
   const handleCardClick = () => {
-    if (product.vendor?.slug) {
-      navigate(`/shops/${product.vendor.slug}`);
-    }
+    navigate(`/products/${product.id}`);
   };
 
   return (
     <div
       onClick={handleCardClick}
       className={cn(
-        "bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-xs hover:shadow-sm transition-all flex flex-col",
-        product.vendor?.slug && "cursor-pointer",
+        "bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-xs hover:shadow-sm transition-all flex flex-col cursor-pointer",
       )}
     >
       {/* Product image */}
@@ -353,7 +350,15 @@ function ProductCard({
             {product.name}
           </h3>
           {product.vendor && (
-            <p className="text-xs text-gray-400 mt-0.5 line-clamp-1">
+            <p
+              onClick={(e) => {
+                if (product.vendor?.slug) {
+                  e.stopPropagation();
+                  navigate(`/shops/${product.vendor.slug}`);
+                }
+              }}
+              className="text-xs text-gray-400 hover:text-primary-500 mt-0.5 line-clamp-1 transition-colors"
+            >
               {product.vendor.name}
             </p>
           )}

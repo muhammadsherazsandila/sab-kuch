@@ -84,9 +84,21 @@ export default function VendorDetailScreen() {
                   const cartQty = items.find((i) => i.product.id === product.id)?.quantity ?? 0;
                   const effectivePrice = product.discountedPrice ?? product.price;
                   return (
-                    <div key={product.id} className="bg-white rounded-xl border border-gray-100 p-3 flex gap-3">
+                    <div
+                      key={product.id}
+                      onClick={() => navigate(`/products/${product.id}`)}
+                      className="bg-white rounded-xl border border-gray-100 p-3 flex gap-3 cursor-pointer hover:shadow-xs transition-shadow"
+                    >
+                      {product.imageUrl && (
+                        <img
+                          src={product.imageUrl}
+                          alt={product.name}
+                          className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                          loading="lazy"
+                        />
+                      )}
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-sm text-gray-900">{product.name}</h3>
+                        <h3 className="font-semibold text-sm text-gray-900 line-clamp-1">{product.name}</h3>
                         {product.description && (
                           <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{product.description}</p>
                         )}
@@ -97,7 +109,10 @@ export default function VendorDetailScreen() {
                           )}
                         </div>
                       </div>
-                      <div className="flex flex-col items-center justify-end">
+                      <div
+                        className="flex flex-col items-center justify-end"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         {product.status === 'OUT_OF_STOCK' ? (
                           <span className="text-xs font-semibold text-gray-400 bg-gray-100 px-2.5 py-1 rounded-lg">
                             Out of stock

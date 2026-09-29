@@ -85,10 +85,30 @@ export async function triggerInstallPrompt(): Promise<boolean> {
   }
 }
 
+import {
+  detectDevice,
+  detectBrowser,
+  getEnvironmentInfo,
+  redirectToChrome,
+  getChromeIntentUrl,
+  DeviceInfo,
+  BrowserInfo,
+  EnvironmentInfo,
+} from './browserDetection';
+
+export {
+  detectDevice,
+  detectBrowser,
+  getEnvironmentInfo,
+  redirectToChrome,
+  getChromeIntentUrl,
+};
+export type { DeviceInfo, BrowserInfo, EnvironmentInfo };
+
 /** Returns true if running on an iOS device (iPhone, iPad, iPod) */
 export function isIOS(): boolean {
   if (typeof navigator === 'undefined') return false;
-  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+  return /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 }
 
 /** Returns true if running on Android */
@@ -113,17 +133,19 @@ export function canInstall(): boolean {
 }
 
 /**
- * React hook for components to subscribe to PWA install availability.
+ * React hook for components to subscribe to PWA install availability & browser environment.
  * Automatically updates when beforeinstallprompt fires or when app is installed.
  */
 export function usePWAInstall() {
   const [installable, setInstallable] = useState<boolean>(() => canInstall());
   const [isStandalone, setIsStandalone] = useState<boolean>(() => isInStandaloneMode());
+  const [env, setEnv] = useState<EnvironmentInfo>(() => getEnvironmentInfo());
 
   useEffect(() => {
     const update = () => {
       setInstallable(canInstall());
       setIsStandalone(isInStandaloneMode());
+      setEnv(getEnvironmentInfo());
     };
 
     listeners.add(update);
@@ -137,8 +159,15 @@ export function usePWAInstall() {
   return {
     canInstall: installable,
     isStandalone,
-    isIOS: isIOS(),
-    isAndroid: isAndroid(),
+    isIOS: env.isIOS,
+    isAndroid: env.isAndroid,
+    isOEMBrowser: env.isOEMBrowser,
+    isInAppBrowser: env.isInAppBrowser,
+    isProblematicPWA: env.isProblematicForPWA,
+    browserName: env.browserName,
+    deviceBrand: env.deviceBrand,
+    recommendedBrowser: env.recommendedBrowser,
     triggerInstallPrompt,
+    redirectToChrome,
   };
 }

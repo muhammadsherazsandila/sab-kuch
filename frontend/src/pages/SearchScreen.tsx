@@ -378,7 +378,8 @@ export default function SearchScreen() {
                         return (
                           <div
                             key={product.id}
-                            className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-xs flex flex-col justify-between"
+                            onClick={() => navigate(`/products/${product.id}`)}
+                            className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-xs flex flex-col justify-between cursor-pointer hover:shadow-sm transition-all"
                           >
                             <div className="relative h-28 bg-gradient-to-br from-orange-50 to-amber-50 overflow-hidden">
                               {product.imageUrl ? (
@@ -408,7 +409,10 @@ export default function SearchScreen() {
                                 </h4>
                                 {product.vendor && (
                                   <p
-                                    onClick={() => navigate(`/shops/${product.vendor?.slug}`)}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      navigate(`/shops/${product.vendor?.slug}`);
+                                    }}
                                     className="text-[11px] text-primary-600 hover:underline mt-0.5 line-clamp-1 cursor-pointer"
                                   >
                                     {product.vendor.name}
@@ -428,30 +432,8 @@ export default function SearchScreen() {
                                   )}
                                 </div>
 
-                                {cartQty === 0 ? (
-                                  <button
-                                    onClick={() =>
-                                      addItem(
-                                        product,
-                                        product.vendor?.id ?? '',
-                                        product.vendor?.name ?? ''
-                                      )
-                                    }
-                                    className="w-6 h-6 rounded-full bg-primary-500 text-white flex items-center justify-center text-sm font-bold active:scale-90 transition-transform"
-                                  >
-                                    +
-                                  </button>
-                                ) : (
-                                  <div className="flex items-center gap-1">
-                                    <button
-                                      onClick={() => useCartStore.getState().removeItem(product.id)}
-                                      className="w-5 h-5 rounded-full border border-primary-500 text-primary-500 flex items-center justify-center font-bold text-xs"
-                                    >
-                                      −
-                                    </button>
-                                    <span className="text-xs font-bold text-primary-500 w-3 text-center">
-                                      {cartQty}
-                                    </span>
+                                <div onClick={(e) => e.stopPropagation()}>
+                                  {cartQty === 0 ? (
                                     <button
                                       onClick={() =>
                                         addItem(
@@ -460,12 +442,36 @@ export default function SearchScreen() {
                                           product.vendor?.name ?? ''
                                         )
                                       }
-                                      className="w-5 h-5 rounded-full bg-primary-500 text-white flex items-center justify-center font-bold text-xs"
+                                      className="w-6 h-6 rounded-full bg-primary-500 text-white flex items-center justify-center text-sm font-bold active:scale-90 transition-transform"
                                     >
                                       +
                                     </button>
-                                  </div>
-                                )}
+                                  ) : (
+                                    <div className="flex items-center gap-1">
+                                      <button
+                                        onClick={() => useCartStore.getState().removeItem(product.id)}
+                                        className="w-5 h-5 rounded-full border border-primary-500 text-primary-500 flex items-center justify-center font-bold text-xs"
+                                      >
+                                        −
+                                      </button>
+                                      <span className="text-xs font-bold text-primary-500 w-3 text-center">
+                                        {cartQty}
+                                      </span>
+                                      <button
+                                        onClick={() =>
+                                          addItem(
+                                            product,
+                                            product.vendor?.id ?? '',
+                                            product.vendor?.name ?? ''
+                                          )
+                                        }
+                                        className="w-5 h-5 rounded-full bg-primary-500 text-white flex items-center justify-center font-bold text-xs"
+                                      >
+                                        +
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>

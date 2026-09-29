@@ -26,7 +26,8 @@ import {
   Share, PlusSquare, ArrowDownCircle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { isIOS, isAndroid, isInStandaloneMode, triggerInstallPrompt, canInstall } from '@/lib/pwa';
+import { isIOS, isAndroid, isInStandaloneMode, triggerInstallPrompt, canInstall, usePWAInstall } from '@/lib/pwa';
+import OEMBrowserGuideModal from '@/components/pwa/OEMBrowserGuideModal';
 
 // ── App metadata shown on the mimic page ───────────────────────────────────
 const APP_META = {
@@ -52,8 +53,16 @@ export default function AppStoreMimic() {
   const navigate = useNavigate();
   const [os, setOs] = useState<'ios' | 'android' | 'desktop'>('desktop');
   const [showIosTooltip, setShowIosTooltip] = useState(false);
+  const [showOEMGuide, setShowOEMGuide] = useState(false);
 
-  // ── Detect OS on mount ──────────────────────────────────────────────────
+  const {
+    isProblematicPWA,
+    isOEMBrowser,
+    isAndroid: isAndroidDevice,
+    redirectToChrome,
+  } = usePWAInstall();
+
+  // ── Detect OS & auto-redirect OEM browsers on mount ───────────────────
   useEffect(() => {
     if (isIOS())     setOs('ios');
     else if (isAndroid()) setOs('android');
@@ -62,8 +71,15 @@ export default function AppStoreMimic() {
     // If already installed as PWA, skip straight to the app
     if (isInStandaloneMode()) {
       navigate('/', { replace: true });
+      return;
     }
-  }, [navigate]);
+
+    // Defensive auto-redirect: if OEM browser on Android, attempt Chrome redirect once
+    if (isOEMBrowser && isAndroidDevice && !sessionStorage.getItem('pwa_oem_mimic_redirect')) {
+      sessionStorage.setItem('pwa_oem_mimic_redirect', 'true');
+      redirectToChrome();
+    }
+  }, [navigate, isOEMBrowser, isAndroidDevice, redirectToChrome]);
 
   // ── "Browse Now" — enter app as guest ──────────────────────────────────
   function handleBrowse() {
@@ -72,6 +88,15 @@ export default function AppStoreMimic() {
 
   // ── "Install App" — platform-aware behaviour ───────────────────────────
   async function handleInstall() {
+    // If in an OEM browser or in-app webview that breaks PWA
+    if (isProblematicPWA) {
+      setShowOEMGuide(true);
+      if (isAndroidDevice) {
+        redirectToChrome();
+      }
+      return;
+    }
+
     if (os === 'ios') {
       // iOS has no programmatic install — show the share sheet tooltip
       setShowIosTooltip(true);
@@ -202,6 +227,12 @@ export default function AppStoreMimic() {
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">About</p>
         <p className="text-sm text-gray-600 leading-relaxed">{APP_META.description}</p>
       </div>
+
+      {/* OEM / In-App Browser Defensive Installation Guide Modal */}
+      <OEMBrowserGuideModal
+        isOpen={showOEMGuide}
+        onClose={() => setShowOEMGuide(false)}
+      />
     </div>
   );
 }

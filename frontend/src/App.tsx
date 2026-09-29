@@ -22,6 +22,7 @@ import AdminDashboard    from '@/pages/AdminDashboard';
 import HomeScreen        from '@/pages/HomeScreen';
 import ShopsScreen       from '@/pages/ShopsScreen';
 import VendorDetailScreen from '@/pages/VendorDetailScreen';
+import ProductDetailScreen from '@/pages/ProductDetailScreen';
 import MyOrdersScreen    from '@/pages/MyOrdersScreen';
 import OrderDetailScreen from '@/pages/OrderDetailScreen';
 import CheckoutScreen    from '@/pages/CheckoutScreen';
@@ -73,6 +74,7 @@ export default function App() {
             <Route path="search"       element={<SearchScreen />} />
             <Route path="shops"        element={<ShopsScreen />} />
             <Route path="shops/:slug"  element={<VendorDetailScreen />} />
+            <Route path="products/:id" element={<ProductDetailScreen />} />
             <Route path="checkout"     element={<CheckoutScreen />} />
             <Route path="cart"         element={<CheckoutScreen />} />
             <Route path="orders"       element={<MyOrdersScreen />} />

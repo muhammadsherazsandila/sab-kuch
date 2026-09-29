@@ -39,6 +39,7 @@ export default function EditProfileScreen() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   // Fetch saved address on mount
   useEffect(() => {
@@ -85,8 +86,6 @@ export default function EditProfileScreen() {
       </div>
     );
   }
-
-  const [showConfirm, setShowConfirm] = useState(false);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

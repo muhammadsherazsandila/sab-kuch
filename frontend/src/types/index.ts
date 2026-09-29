@@ -96,7 +96,7 @@ export interface Product {
   unit?: string;
   status: ProductStatus;
   isFeatured: boolean;
-  vendor?: Pick<Vendor, 'id' | 'name' | 'slug' | 'logoUrl'>;
+  vendor?: Pick<Vendor, 'id' | 'name' | 'slug' | 'logoUrl'> & Partial<Vendor>;
   category?: Category;
 }
 

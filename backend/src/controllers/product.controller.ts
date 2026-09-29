@@ -56,6 +56,40 @@ export const ProductController = {
     return sendSuccess(res, products);
   },
 
+  /** GET /api/v1/products/:id — single product details */
+  async getProductById(req: Request, res: Response) {
+    try {
+      const product = await prisma.product.findUnique({
+        where: { id: req.params.id as string },
+        include: {
+          vendor: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              logoUrl: true,
+              coverImageUrl: true,
+              status: true,
+              deliveryFee: true,
+              estimatedDeliveryMinutes: true,
+              operatingHours: true,
+            },
+          },
+          category: true,
+        },
+      });
+
+      if (!product || product.status === 'HIDDEN') {
+        return sendError(res, 'Product not found', 404);
+      }
+
+      return sendSuccess(res, product);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to fetch product';
+      return sendError(res, message, 500);
+    }
+  },
+
   /** POST /api/v1/products */
   async createProduct(req: Request, res: Response) {
     try {

@@ -28,8 +28,10 @@ import {
   isIOS,
   isAndroid,
   isInStandaloneMode,
-  canInstall
+  canInstall,
+  usePWAInstall,
 } from '@/lib/pwa';
+import OEMBrowserGuideModal from '@/components/pwa/OEMBrowserGuideModal';
 
 export default function CheckoutScreen() {
   const navigate = useNavigate();
@@ -52,7 +54,9 @@ export default function CheckoutScreen() {
   const [saveAsDefault, setSaveAsDefault] = useState(true);
 
   // PWA Prompt state
+  const { isProblematicPWA } = usePWAInstall();
   const [showIosInstallModal, setShowIosInstallModal] = useState(false);
+  const [showOEMGuide, setShowOEMGuide] = useState(false);
 
   const deliveryFee = 30;
   const total = subtotal() + deliveryFee;
@@ -62,11 +66,13 @@ export default function CheckoutScreen() {
     if (!isInStandaloneMode()) {
       if (canInstall()) {
         triggerInstallPrompt().catch(() => {});
+      } else if (isProblematicPWA) {
+        setShowOEMGuide(true);
       } else if (isIOS()) {
         setShowIosInstallModal(true);
       }
     }
-  }, []);
+  }, [isProblematicPWA]);
 
   // Fetch saved default address if logged in
   useEffect(() => {
@@ -118,7 +124,9 @@ export default function CheckoutScreen() {
 
     // 1. PWA Deferred Prompt Trigger if not yet installed
     if (!isInStandaloneMode()) {
-      if (canInstall()) {
+      if (isProblematicPWA) {
+        setShowOEMGuide(true);
+      } else if (canInstall()) {
         await triggerInstallPrompt();
       } else if (isIOS()) {
         setShowIosInstallModal(true);
@@ -472,6 +480,12 @@ export default function CheckoutScreen() {
           {submitting ? 'Placing Order...' : !user ? `Sign In & Pay Rs. ${total}` : `Place Order (Rs. ${total})`}
         </Button>
       </div>
+
+      {/* OEM / In-App Browser Defensive Installation Guide Modal */}
+      <OEMBrowserGuideModal
+        isOpen={showOEMGuide}
+        onClose={() => setShowOEMGuide(false)}
+      />
     </div>
   );
 }

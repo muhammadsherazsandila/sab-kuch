@@ -22,6 +22,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { useAuthStore } from '@/store/authStore';
 import { usePWAInstall } from '@/lib/pwa';
+import OEMBrowserGuideModal from '@/components/pwa/OEMBrowserGuideModal';
 
 import apiClient from '@/lib/apiClient';
 import { subscribeToPushNotifications } from '@/lib/pushNotifications';
@@ -31,7 +32,17 @@ import { toast } from 'sonner';
 export default function SettingsScreen() {
   const navigate = useNavigate();
   const { user, logout, updateUser } = useAuthStore();
-  const { canInstall, isStandalone, isIOS, triggerInstallPrompt } = usePWAInstall();
+  const {
+    canInstall,
+    isStandalone,
+    isIOS,
+    isAndroid,
+    isProblematicPWA,
+    triggerInstallPrompt,
+    redirectToChrome,
+  } = usePWAInstall();
+
+  const [showOEMGuide, setShowOEMGuide] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(
     user?.notificationsEnabled !== false
   );
@@ -237,13 +248,18 @@ export default function SettingsScreen() {
         {!isStandalone && (
           <button
             onClick={async () => {
-              if (isIOS) {
+              if (isProblematicPWA) {
+                setShowOEMGuide(true);
+                if (isAndroid) {
+                  redirectToChrome();
+                }
+              } else if (isIOS) {
                 toast.info('On iOS Safari: Tap Share → "Add to Home Screen"');
               } else if (canInstall) {
                 const accepted = await triggerInstallPrompt();
                 if (accepted) toast.success('Sab Kuch installed successfully!');
               } else {
-                toast.info('Look for the install icon ⊕ in your browser address bar.');
+                setShowOEMGuide(true);
               }
             }}
             className="w-full bg-gradient-to-r from-primary-500 to-amber-500 text-white rounded-2xl shadow-sm px-4 py-3.5 flex items-center justify-between hover:opacity-95 active:scale-[0.99] transition-all cursor-pointer"
@@ -338,6 +354,12 @@ export default function SettingsScreen() {
           await applyNotificationToggle(false);
         }}
         onClose={() => setShowDisableNotificationConfirm(false)}
+      />
+
+      {/* OEM / In-App Browser Defensive Installation Guide Modal */}
+      <OEMBrowserGuideModal
+        isOpen={showOEMGuide}
+        onClose={() => setShowOEMGuide(false)}
       />
     </div>
   );

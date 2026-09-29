@@ -15,6 +15,7 @@ import InstallBanner from './InstallBanner';
 import { useAuthStore } from '@/store/authStore';
 import { useNotificationStore } from '@/store/notificationStore';
 import { subscribeToPushNotifications } from '@/lib/pushNotifications';
+import { usePWAInstall } from '@/lib/pwa';
 
 const TAB_ROUTES = ['/', '/shops', '/checkout', '/orders', '/settings'];
 
@@ -23,6 +24,17 @@ export default function AppLayout() {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const fetchNotifications = useNotificationStore((s) => s.fetchNotifications);
+  const { isOEMBrowser, isAndroid, isStandalone, redirectToChrome } = usePWAInstall();
+
+  // Defensive PWA: If user is in an OEM browser on Android, attempt to redirect to Chrome
+  useEffect(() => {
+    if (!isStandalone && isOEMBrowser && isAndroid) {
+      if (!sessionStorage.getItem('pwa_oem_chrome_redirect')) {
+        sessionStorage.setItem('pwa_oem_chrome_redirect', 'true');
+        redirectToChrome();
+      }
+    }
+  }, [isStandalone, isOEMBrowser, isAndroid, redirectToChrome]);
 
   useEffect(() => {
     if (

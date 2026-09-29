@@ -1,26 +1,46 @@
 import React, { useState } from 'react';
-import { Download, X, Share, PlusSquare, Sparkles } from 'lucide-react';
+import { Download, X, Share, PlusSquare } from 'lucide-react';
 import { usePWAInstall } from '@/lib/pwa';
+import OEMBrowserGuideModal from '@/components/pwa/OEMBrowserGuideModal';
 import { toast } from 'sonner';
 
 export default function InstallBanner() {
-  const { canInstall, isStandalone, isIOS, triggerInstallPrompt } = usePWAInstall();
+  const {
+    canInstall,
+    isStandalone,
+    isIOS,
+    isAndroid,
+    isProblematicPWA,
+    browserName,
+    triggerInstallPrompt,
+    redirectToChrome,
+  } = usePWAInstall();
+
   const [dismissed, setDismissed] = useState<boolean>(() => {
     return sessionStorage.getItem('pwa_banner_dismissed') === 'true';
   });
   const [showIOSGuide, setShowIOSGuide] = useState(false);
+  const [showOEMGuide, setShowOEMGuide] = useState(false);
 
   // If already installed as PWA or user dismissed this session, don't show
   if (isStandalone || dismissed) {
     return null;
   }
 
-  // Only show if browser provides install prompt or if on iOS
-  if (!canInstall && !isIOS) {
+  // Show if native install prompt ready, or on iOS, or on problematic OEM/In-App browser
+  if (!canInstall && !isIOS && !isProblematicPWA) {
     return null;
   }
 
   const handleInstallClick = async () => {
+    if (isProblematicPWA) {
+      setShowOEMGuide(true);
+      if (isAndroid) {
+        redirectToChrome();
+      }
+      return;
+    }
+
     if (isIOS) {
       setShowIOSGuide(true);
       return;
@@ -118,6 +138,12 @@ export default function InstallBanner() {
           </div>
         </div>
       )}
+
+      {/* OEM / In-App Browser Defensive Installation Guide Modal */}
+      <OEMBrowserGuideModal
+        isOpen={showOEMGuide}
+        onClose={() => setShowOEMGuide(false)}
+      />
     </>
   );
 }
