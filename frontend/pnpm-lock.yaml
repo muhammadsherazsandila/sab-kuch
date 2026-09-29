@@ -77,9 +77,6 @@ importers:
       tailwindcss-animate:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@4.3.3)
-      types:
-        specifier: github:eslint/js
-        version: eslint-js@https://codeload.github.com/eslint/js/tar.gz/d24d6414c05f888989ac75202177bea5ad00ea5b
       typescript-eslint:
         specifier: ^8.71.0
         version: 8.71.0(eslint@10.11.0(jiti@2.7.0))(typescript@5.7.3)
@@ -1979,10 +1976,6 @@ packages:
   escape-string-regexp@4.0.0:
     resolution: {integrity: sha512-TtpcNJ3XAzx3Gq8sWRzJaVajRs0uVxA2YAkdb1jm2YkPz4G6egUFAyA3n5vtEIZefPk5Wa4UXbKuS5fKkJWdgA==}
     engines: {node: '>=10'}
-
-  eslint-js@https://codeload.github.com/eslint/js/tar.gz/d24d6414c05f888989ac75202177bea5ad00ea5b:
-    resolution: {tarball: https://codeload.github.com/eslint/js/tar.gz/d24d6414c05f888989ac75202177bea5ad00ea5b}
-    version: 0.0.0
 
   eslint-plugin-react-hooks@7.1.1:
     resolution: {integrity: sha512-f2I7Gw6JbvCexzIInuSbZpfdQ44D7iqdWX01FKLvrPgqxoE7oMj8clOfto8U6vYiz4yd5oKu39rRSVOe1zRu0g==}
@@ -5336,8 +5329,6 @@ snapshots:
   escalade@3.2.0: {}
 
   escape-string-regexp@4.0.0: {}
-
-  eslint-js@https://codeload.github.com/eslint/js/tar.gz/d24d6414c05f888989ac75202177bea5ad00ea5b: {}
 
   eslint-plugin-react-hooks@7.1.1(eslint@10.11.0(jiti@2.7.0)):
     dependencies:

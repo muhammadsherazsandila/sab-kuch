@@ -59,9 +59,6 @@ importers:
       resend:
         specifier: ^6.30.0
         version: 6.30.0(@react-email/render@0.0.16(react-dom@18.3.1(react@19.3.0))(react@19.3.0))
-      types:
-        specifier: ^0.1.1
-        version: 0.1.1
       uuid:
         specifier: ^14.0.2
         version: 14.0.2
@@ -2239,10 +2236,6 @@ packages:
   type-is@2.1.0:
     resolution: {integrity: sha512-faYHw0anBbc/kWF3zFTEnxSFOAGUX9GFbOBthvDdLsIlEoWOFOtS0zgCiQYwIskL9iGXZL3kAXD8OoZ4GmMATA==}
     engines: {node: '>= 18'}
-
-  types@0.1.1:
-    resolution: {integrity: sha512-JuntZtJj4MKLE9x/XBs7IjsznYhzETwr34pw3XJTKvgYtAMdeMG+o8x8U85E5Lm6eCPa1DdOdGVsHMwq4ZnZAg==}
-    engines: {node: '>= 0.6.0'}
 
   typescript-eslint@8.71.0:
     resolution: {integrity: sha512-fBdHYiqQ14RW6mOMXD14Svn82ZsCYAoQSzGRzyEjR59S5A2Krh/l7fGTOQ7iCr8gGy/mHVXtEF7s5fgjEdV0Pw==}
@@ -4536,8 +4529,6 @@ snapshots:
       content-type: 2.1.0
       media-typer: 1.1.1
       mime-types: 3.0.2
-
-  types@0.1.1: {}
 
   typescript-eslint@8.71.0(eslint@9.39.5(jiti@2.7.0))(typescript@5.7.3):
     dependencies:
