@@ -6,7 +6,7 @@
   "packageManager": "pnpm@10.23.0",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "prisma generate && tsc",
+    "build": "tsc",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix",
     "postinstall": "prisma generate",
