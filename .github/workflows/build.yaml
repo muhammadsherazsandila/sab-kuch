@@ -1,0 +1,49 @@
+name: "Build and Lint"
+on:
+  push:
+    branches: ["main", "dev"]
+  pull_request:
+    branches: ["main", "dev"]
+jobs:
+  frontend:
+    name: "Frontend Build and Lint"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./frontend
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v4
+      - name: "Setup Node.js"
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: "Install pnpm"
+        run: npm install -g pnpm
+      - name: "Install dependencies"
+        run: pnpm install
+      - name: "Build"
+        run: pnpm run build
+      - name: "Run lint"
+        run: pnpm run lint
+  backend:
+    name: "Backend Build and Lint"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+    steps:
+      - name: "Checkout code"
+        uses: actions/checkout@v4
+      - name: "Setup Node.js"
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+      - name: "Install pnpm"
+        run: npm install -g pnpm
+      - name: "Install dependencies"
+        run: pnpm install
+      - name: "Build"
+        run: pnpm run build
+      - name: "Run lint"
+        run: pnpm run lint

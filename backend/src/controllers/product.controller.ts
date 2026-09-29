@@ -26,7 +26,7 @@ export const ProductController = {
 
     // 2. If fewer than 8 featured products, fill up with any available products from active vendors
     if (products.length < 8) {
-      const existingIds = products.map((p) => p.id);
+      const existingIds = products.map((p: { id: string }) => p.id);
       const additionalProducts = await prisma.product.findMany({
         where: {
           id: { notIn: existingIds },

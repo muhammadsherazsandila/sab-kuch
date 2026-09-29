@@ -16,7 +16,7 @@ const adapter = new PrismaPg({
 
 // Extend globalThis so TypeScript knows about our global cache key
 declare global {
-  // eslint-disable-next-line no-var
+   
   var __prisma: PrismaClient | undefined;
 }
 
